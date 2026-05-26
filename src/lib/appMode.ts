@@ -168,62 +168,91 @@ const SECRET_AGENT_CONFIG: ModeConfig = {
   ],
 };
 
-// ─── GIA (App 2) ──────────────────────────────────────────────────────────────
+// ─── GIA — Go Intelligence Agency (App 2) ────────────────────────────────────
+//
+// Positioned for serious operators: traders, founders, executives, consultants.
+// "The intelligence platform that doesn't require an IT department."
+//
+// Three tiers:
+//   Operative — 30-day free trial, 5 operatives (missions) to prove the value
+//   Director  — $19.99/mo, 4 intelligence portfolios (≈20 missions), deep coverage
+//   Agency    — $49.99/mo, unlimited, morning briefings, full operation
 
 const GIA_CONFIG: ModeConfig = {
-  name: 'GIA',
-  tagline: 'Your covert operations command center.',
+  name: 'Go Intelligence Agency',
+  tagline: 'Intel. When you need it.',
   domain: 'go-i-agency.com',
   defaultView: 'command',
   missionLimit: Infinity,
-  documentTitle: 'GIA — Operations Hub',
+  documentTitle: 'GIA — Your Operations Hub',
   brandAccent: 'emerald',
   landing: {
-    headline: 'Command center for the watchmen you can\'t hire.',
-    headlineHighlight: 'Command center',
+    headline: 'Your personal intelligence operation.',
+    headlineHighlight: 'intelligence operation',
     description:
-      'Run unlimited missions, monitor every signal that matters, and command your operations from one encrypted hub. Built for power users who outgrew the entry tier.',
-    heroCta: 'Start Free — No credit card',
-    heroCtaNote: 'Free account. Subscribe when you\'re ready. Cancel anytime.',
-    pricingHeading: 'Clearance Levels',
-    pricingSubhead: 'Both tiers ship with unlimited missions. Pick by feature depth.',
+      'Deploy operatives on the markets, competitors, news signals, and data sources that move your business. Get briefed when something changes. No IT department. No enterprise contract. Just intelligence, on your terms.',
+    heroCta: 'Start your free trial — 30 days',
+    heroCtaNote: 'No credit card. Full access. Cancel anytime.',
+    pricingHeading: 'Operational Clearance',
+    pricingSubhead: 'Built for people making decisions with information — not waiting for a quarterly report.',
   },
   tiers: [
     {
-      id: 'agent',
-      label: 'Agent',
-      price: '$14.99/mo',
-      priceAnnual: '$149.99/yr',
-      annualSavingsNote: '2 months free',
-      missionsLabel: 'Unlimited missions',
+      id: 'operative',
+      label: 'Operative',
+      price: 'Free',
+      trial: '30 days',
+      trialNote: 'Full access. No credit card. Prove the value first.',
+      missionsLabel: '5 active operatives',
       interval: 'Hourly checks',
+      isFree: true,
       current: true,
       featureBullets: [
-        'Unlimited missions',
-        'Hourly checks',
-        'Full Command Center dashboard',
-        'Push notifications',
+        '5 active operatives (missions)',
+        'Your Operations Hub dashboard',
+        'Hourly intelligence checks',
+        'Push & in-app alerts',
+        'All 10 intelligence types',
+        '30 days full access — no card',
+      ],
+    },
+    {
+      id: 'director',
+      label: 'Director',
+      price: '$19.99/mo',
+      priceAnnual: '$199.99/yr',
+      annualSavingsNote: '2 months free',
+      missionsLabel: '4 intelligence portfolios',
+      interval: 'Hourly checks',
+      highlight: true,
+      featureBullets: [
+        '4 intelligence portfolios',
+        'Up to 20 operatives total',
+        'Your Operations Hub dashboard',
+        'Hourly checks across all operatives',
+        'Push, email & in-app alerts',
+        'Portfolio-level status overview',
         'Priority support',
       ],
-      stripeLink: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENT_MONTHLY_LINK',
-      stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENT_ANNUAL_LINK',
+      stripeLink: 'https://buy.stripe.com/REPLACE_WITH_GIA_DIRECTOR_MONTHLY_LINK',
+      stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_GIA_DIRECTOR_ANNUAL_LINK',
     },
     {
       id: 'agency',
       label: 'Agency',
-      price: '$29.99/mo',
-      priceAnnual: '$299.99/yr',
+      price: '$49.99/mo',
+      priceAnnual: '$499.99/yr',
       annualSavingsNote: '2 months free',
-      missionsLabel: 'Unlimited + advanced',
+      missionsLabel: 'Unlimited operations',
       interval: 'Priority checks',
-      highlight: true,
       featureBullets: [
-        'Unlimited missions',
-        'Priority hourly checks',
-        'Full Command Center dashboard',
+        'Unlimited portfolios & operatives',
+        'Priority intelligence checks',
+        'Daily morning briefing (email)',
         'Push, email & SMS alerts',
-        'Advanced filters & rules',
-        'Premium support',
+        'Compound alert conditions',
+        'Webhook output to any system',
+        'Dedicated support',
       ],
       stripeLink: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENCY_MONTHLY_LINK',
       stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENCY_ANNUAL_LINK',

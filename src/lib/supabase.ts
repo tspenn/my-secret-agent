@@ -39,6 +39,8 @@ export interface SecretAgentMission {
   last_value: string | null;
   check_interval_minutes: number;
   metadata: Record<string, unknown>;
+  /** GIA: optional grouping label e.g. "Tech Sector Watch" */
+  portfolio_name: string | null;
   created_at: string;
   updated_at: string;
 }
