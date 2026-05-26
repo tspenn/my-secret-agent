@@ -240,7 +240,7 @@ export default function CommandCenter({
             </div>
             <h1 className="font-['Space_Grotesk',sans-serif] text-4xl md:text-5xl font-bold text-white leading-tight tracking-tight mb-4">
               {isGIA ? (
-                <>Your <span className="text-emerald-400">Operations</span> Hub</>
+                <>Your Covert<br /><span className="text-emerald-400">Operations</span> Hub</>
               ) : (
                 <>Mission<br /><span className="text-emerald-400">Command</span> Center</>
               )}

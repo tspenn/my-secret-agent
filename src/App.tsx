@@ -3,7 +3,7 @@ import SecretAgent from './views/SecretAgent';
 import CommandCenter from './views/CommandCenter';
 import Landing from './views/Landing';
 import { useAuth } from './lib/auth';
-import { MODE } from './lib/appMode';
+import { MODE, isGIA } from './lib/appMode';
 
 type Mode = 'agent' | 'command';
 
@@ -28,12 +28,17 @@ export default function App() {
     );
   }
 
-  // Unauthenticated users see the Skyland Reach landing page.
+  // Unauthenticated users see the landing page.
   if (!auth.user) {
     return <Landing />;
   }
 
-  // Authenticated users go straight to the app — landing is never shown.
+  // GIA mode always renders the Command Center directly — no entry-form toggle.
+  if (isGIA) {
+    return <CommandCenter auth={auth} onSwitchMode={() => {}} />;
+  }
+
+  // Secret Agent mode: toggle between entry form and The Van (gated by tier in SecretAgent).
   return mode === 'agent'
     ? <SecretAgent auth={auth} onSwitchMode={() => setMode('command')} />
     : <CommandCenter auth={auth} onSwitchMode={() => setMode('agent')} />;
