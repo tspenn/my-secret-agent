@@ -3,12 +3,12 @@ import SecretAgent from './views/SecretAgent';
 import CommandCenter from './views/CommandCenter';
 import Landing from './views/Landing';
 import { useAuth } from './lib/auth';
-import { MODE, isGIA } from './lib/appMode';
+import { MODE } from './lib/appMode';
 
-type Mode = 'agent' | 'command';
+type View = 'agent' | 'command';
 
 export default function App() {
-  const [mode, setMode] = useState<Mode>(MODE.defaultView);
+  const [view, setView] = useState<View>('agent');
   const auth = useAuth();
 
   useEffect(() => {
@@ -28,18 +28,11 @@ export default function App() {
     );
   }
 
-  // Unauthenticated users see the landing page.
   if (!auth.user) {
     return <Landing />;
   }
 
-  // GIA mode always renders the Command Center directly — no entry-form toggle.
-  if (isGIA) {
-    return <CommandCenter auth={auth} onSwitchMode={() => {}} />;
-  }
-
-  // Secret Agent mode: toggle between entry form and The Van (gated by tier in SecretAgent).
-  return mode === 'agent'
-    ? <SecretAgent auth={auth} onSwitchMode={() => setMode('command')} />
-    : <CommandCenter auth={auth} onSwitchMode={() => setMode('agent')} />;
+  return view === 'agent'
+    ? <SecretAgent auth={auth} onSwitchMode={() => setView('command')} />
+    : <CommandCenter auth={auth} onSwitchMode={() => setView('agent')} />;
 }

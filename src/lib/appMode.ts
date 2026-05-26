@@ -1,20 +1,9 @@
 /**
- * App Mode Configuration
+ * App Configuration — My Secret Agent
  *
- * The same codebase ships as two products:
- *   1. "secret_agent" → my-secret-agent.com (Entry tier app, sentence-form default)
- *   2. "gia"          → go-i-agency.com    (upgrade destination, Command Center default)
- *
- * Set VITE_APP_MODE in the deployment environment to switch.
- *
- * Both apps share the SAME Supabase backend, SAME auth.users, SAME mission data.
- * Only the default view and tier limits differ.
+ * Single-app build. Deploy to my-secret-agent.com.
+ * Shared Supabase backend with sister apps.
  */
-
-export type AppMode = 'secret_agent' | 'gia';
-
-const rawMode = (import.meta.env.VITE_APP_MODE ?? 'secret_agent') as AppMode;
-export const APP_MODE: AppMode = rawMode === 'gia' ? 'gia' : 'secret_agent';
 
 // ─── Tier configuration ───────────────────────────────────────────────────────
 
@@ -73,27 +62,24 @@ export interface ModeConfig {
   tagline: string;
   /** Production domain (informational) */
   domain: string;
-  /** Which view is the default landing screen */
-  defaultView: 'agent' | 'command';
-  /** Active mission limit on the entry/default tier */
+  /** Active mission limit on the free tier */
   missionLimit: number;
   /** Pricing tiers shown in the upgrade panel + landing page */
   tiers: TierConfig[];
   /** Browser tab title */
   documentTitle: string;
-  /** Header brand color hint */
-  brandAccent: 'amber' | 'emerald';
+  /** Header brand color */
+  brandAccent: 'amber';
   /** Marketing landing page copy */
   landing: LandingConfig;
 }
 
-// ─── Secret Agent (App 1) ─────────────────────────────────────────────────────
+// ─── Config ───────────────────────────────────────────────────────────────────
 
-const SECRET_AGENT_CONFIG: ModeConfig = {
+export const MODE: ModeConfig = {
   name: 'My Secret Agent',
   tagline: 'Watching silently in the background.',
   domain: 'my-secret-agent.com',
-  defaultView: 'agent',
   missionLimit: 1,
   documentTitle: 'My Secret Agent',
   brandAccent: 'amber',
@@ -158,85 +144,6 @@ const SECRET_AGENT_CONFIG: ModeConfig = {
     },
   ],
 };
-
-// ─── GIA (App 2) ──────────────────────────────────────────────────────────────
-
-const GIA_CONFIG: ModeConfig = {
-  name: 'GIA',
-  tagline: 'Your covert operations command center.',
-  domain: 'go-i-agency.com',
-  defaultView: 'command',
-  missionLimit: Infinity,
-  documentTitle: 'GIA — Operations Hub',
-  brandAccent: 'emerald',
-  landing: {
-    headline: 'Command center for the watchmen you can\'t hire.',
-    headlineHighlight: 'Command center',
-    description:
-      'Run unlimited missions, monitor every signal that matters, and command your operations from one encrypted hub. Built for power users who outgrew the entry tier.',
-    heroCta: 'Start Free — No credit card',
-    heroCtaNote: 'Free account. Subscribe when you\'re ready. Cancel anytime.',
-    pricingHeading: 'Clearance Levels',
-    pricingSubhead: 'Both tiers ship with unlimited missions. Pick by feature depth.',
-  },
-  tiers: [
-    {
-      id: 'agent',
-      label: 'Agent',
-      price: '$14.99/mo',
-      priceAnnual: '$149.99/yr',
-      annualSavingsNote: '2 months free',
-      missionsLabel: 'Unlimited missions',
-      interval: 'Hourly checks',
-      current: true,
-      featureBullets: [
-        'Unlimited missions',
-        'Hourly checks',
-        'Full Command Center dashboard',
-        'Push notifications',
-        'Priority support',
-      ],
-      stripeLink: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENT_MONTHLY_LINK',
-      stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENT_ANNUAL_LINK',
-    },
-    {
-      id: 'agency',
-      label: 'Agency',
-      price: '$29.99/mo',
-      priceAnnual: '$299.99/yr',
-      annualSavingsNote: '2 months free',
-      missionsLabel: 'Unlimited + advanced',
-      interval: 'Priority checks',
-      highlight: true,
-      featureBullets: [
-        'Unlimited missions',
-        'Priority hourly checks',
-        'Full Command Center dashboard',
-        'Push, email & SMS alerts',
-        'Advanced filters & rules',
-        'Premium support',
-      ],
-      stripeLink: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENCY_MONTHLY_LINK',
-      stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENCY_ANNUAL_LINK',
-    },
-  ],
-};
-
-// ─── Active config ────────────────────────────────────────────────────────────
-
-const baseConfig: ModeConfig = APP_MODE === 'gia' ? GIA_CONFIG : SECRET_AGENT_CONFIG;
-
-// Allow VITE_APP_NAME to override the brand display name without a code change
-const envName = (import.meta.env.VITE_APP_NAME as string | undefined)?.trim();
-
-export const MODE: ModeConfig = {
-  ...baseConfig,
-  name: envName || baseConfig.name,
-  documentTitle: envName || baseConfig.documentTitle,
-};
-
-export const isSecretAgent = APP_MODE === 'secret_agent';
-export const isGIA = APP_MODE === 'gia';
 
 /** Returns true when the user has hit their tier's mission limit */
 export function atMissionLimit(activeMissionCount: number): boolean {

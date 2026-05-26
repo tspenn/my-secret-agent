@@ -8,7 +8,7 @@ import { signOut } from '../lib/auth';
 import { pushSupported, getPushPermission, enablePushNotifications, disablePushNotifications } from '../lib/pushNotifications';
 import AuthModal from '../components/AuthModal';
 import type { AuthState } from '../lib/auth';
-import { MODE, isSecretAgent, atMissionLimit } from '../lib/appMode';
+import { MODE, atMissionLimit } from '../lib/appMode';
 
 type UserTier = 'free' | 'agent' | 'network';
 
@@ -463,7 +463,7 @@ export default function SecretAgent({
           <div className="mt-10 flex flex-col items-start gap-5">
 
             {/* Mission limit warning */}
-            {limitReached && user && isSecretAgent && (
+            {limitReached && user && (
               <div className="w-full bg-amber-500/5 border border-amber-500/20 rounded-sm px-4 py-3">
                 <p className="font-mono text-[12px] text-amber-500/80 tracking-wide">
                   MISSION LIMIT REACHED ({MISSION_LIMIT}/{MISSION_LIMIT}) — Deactivate your mission or{' '}
@@ -596,7 +596,7 @@ export default function SecretAgent({
 
                 {!t.current && (
                   <a
-                    href={isSecretAgent ? 'https://go-i-agency.com' : '#'}
+                    href="#"
                     className="mt-3 block text-center w-full font-mono text-[12px] text-amber-500/60 hover:text-amber-400 border border-amber-500/20 hover:border-amber-500/40 py-1.5 rounded-sm transition-colors uppercase tracking-widest"
                   >
                     Upgrade
@@ -606,11 +606,9 @@ export default function SecretAgent({
             ))}
           </div>
 
-          {isSecretAgent && (
-            <p className="font-mono text-[12px] text-[#8a8a8a] mt-4 leading-relaxed text-center">
-              {MODE.landing.pricingSubhead}
-            </p>
-          )}
+          <p className="font-mono text-[12px] text-[#8a8a8a] mt-4 leading-relaxed text-center">
+            {MODE.landing.pricingSubhead}
+          </p>
         </section>
       </main>
 

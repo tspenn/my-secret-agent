@@ -10,7 +10,7 @@ import { supabase, type SecretAgentMission, type SecretAgentAlert, type WatchTyp
 import { signOut } from '../lib/auth';
 import AuthModal from '../components/AuthModal';
 import type { AuthState } from '../lib/auth';
-import { MODE, isGIA, isSecretAgent } from '../lib/appMode';
+import { MODE } from '../lib/appMode';
 
 const WATCH_ICONS: Record<WatchType, typeof Eye> = {
   sale_price: Tag,
@@ -177,10 +177,10 @@ export default function CommandCenter({
             </div>
             <div>
               <span className="font-['Space_Grotesk',sans-serif] font-bold text-base tracking-tight text-white">
-                {isGIA ? 'GIA' : 'MY SECRET AGENT'}
+                MY SECRET AGENT
               </span>
               <span className="ml-2 text-[12px] font-mono text-zinc-600 tracking-widest uppercase">
-                {isGIA ? 'OPS HUB' : 'GIA'}
+                THE VAN
               </span>
             </div>
           </div>
@@ -239,18 +239,13 @@ export default function CommandCenter({
               {user ? `AGENT: ${user.email?.split('@')[0].toUpperCase()}` : 'SECURE CHANNEL ACTIVE'}
             </div>
             <h1 className="font-['Space_Grotesk',sans-serif] text-4xl md:text-5xl font-bold text-white leading-tight tracking-tight mb-4">
-              {isGIA ? (
-                <>Your Covert<br /><span className="text-emerald-400">Operations</span> Hub</>
-              ) : (
-                <>Mission<br /><span className="text-emerald-400">Command</span> Center</>
-              )}
+              <>Mission<br /><span className="text-emerald-400">The Van</span></>
+
             </h1>
             <p className="text-zinc-400 text-lg leading-relaxed max-w-lg mb-8">
               {user
-                ? `${activeMissions.length} active mission${activeMissions.length !== 1 ? 's' : ''} running${isGIA ? ' — unlimited capacity' : ''}. Your agents are watching silently in the background.`
-                : isGIA
-                  ? 'Sign in to deploy unlimited missions, run hourly checks, and command your operations from one encrypted dashboard.'
-                  : 'Sign in to view your missions, check intel, and receive alerts when conditions are met.'
+                ? `${activeMissions.length} active mission${activeMissions.length !== 1 ? 's' : ''} running. Your agents are watching silently in the background.`
+                : 'Sign in to view your missions, check intel, and receive alerts when conditions are met.'
               }
             </p>
             <div className="flex flex-wrap gap-3">
@@ -499,7 +494,7 @@ export default function CommandCenter({
           {/* Pricing / Tier panel */}
           <div className="bg-zinc-900/40 border border-zinc-800 rounded-2xl p-5">
             <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500 mb-4">
-              {isSecretAgent ? 'Upgrade Path' : 'Your Tier'}
+              Upgrade Path
             </p>
             <div className="flex flex-col gap-2">
               {MODE.tiers.map((t) => (
@@ -544,7 +539,7 @@ export default function CommandCenter({
 
                   {!t.current && (
                     <a
-                      href={isSecretAgent ? 'https://go-i-agency.com' : '#'}
+                      href="#"
                       className="mt-2 block text-center text-[12px] font-mono text-emerald-400 hover:text-emerald-300 border border-emerald-500/20 hover:border-emerald-500/40 py-1.5 rounded uppercase tracking-widest transition-colors"
                     >
                       Upgrade

@@ -10,7 +10,7 @@
 import { useState } from 'react';
 import { Check, Lock, Shield, ExternalLink } from 'lucide-react';
 import AuthModal from '../components/AuthModal';
-import { MODE, isGIA, type TierConfig } from '../lib/appMode';
+import { MODE, type TierConfig } from '../lib/appMode';
 
 type AuthRequest = { open: boolean; mode: 'signin' | 'signup' };
 
@@ -18,12 +18,11 @@ export default function Landing() {
   const [auth, setAuth] = useState<AuthRequest>({ open: false, mode: 'signin' });
   const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly');
 
-  const accent = MODE.brandAccent; // 'amber' | 'emerald'
   const hasAnnual = MODE.tiers.some((t) => t.priceAnnual);
 
-  const accentText = accent === 'emerald' ? 'text-emerald-400' : 'text-amber-400';
-  const accentBg = accent === 'emerald' ? 'bg-emerald-500/10' : 'bg-amber-500/10';
-  const accentBorder = accent === 'emerald' ? 'border-emerald-500/30' : 'border-amber-500/30';
+  const accentText = 'text-amber-400';
+  const accentBg = 'bg-amber-500/10';
+  const accentBorder = 'border-amber-500/30';
 
   function openSignUp() {
     setAuth({ open: true, mode: 'signup' });
@@ -42,7 +41,7 @@ export default function Landing() {
       <header className="sticky top-0 z-30 border-b border-[#2a2a2a] bg-[#1a1a1a]/95 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className={`pulse-dot ${accent === 'emerald' ? 'pulse-dot-emerald' : ''}`} />
+            <span className="pulse-dot" />
             <span className="font-semibold text-sm tracking-[0.25em] uppercase text-[#f5f0e8]">
               {MODE.name}
             </span>
@@ -58,9 +57,6 @@ export default function Landing() {
 
       {/* ─── Hero ────────────────────────────────────────────────────────────── */}
       <section className="border-b border-[#2a2a2a] relative overflow-hidden">
-        {isGIA && (
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(16,185,129,0.06)_0%,_transparent_60%)]" />
-        )}
         <div className="relative max-w-6xl mx-auto px-6 py-20 md:py-28">
           <div className="max-w-3xl">
             <div className={`inline-flex items-center gap-2 ${accentBg} border ${accentBorder} rounded-full px-3 py-1 mb-6`}>
@@ -138,7 +134,6 @@ export default function Landing() {
                 key={tier.id}
                 tier={tier}
                 billing={billing}
-                accent={accent}
                 onFreeCta={openSignUp}
               />
             ))}
@@ -205,17 +200,15 @@ function Headline({
 function PricingCard({
   tier,
   billing,
-  accent,
   onFreeCta,
 }: {
   tier: TierConfig;
   billing: 'monthly' | 'annual';
-  accent: 'amber' | 'emerald';
   onFreeCta: () => void;
 }) {
-  const accentText = accent === 'emerald' ? 'text-emerald-400' : 'text-amber-400';
-  const accentBg = accent === 'emerald' ? 'bg-emerald-500/10' : 'bg-amber-500/10';
-  const accentBorder = accent === 'emerald' ? 'border-emerald-500/40' : 'border-amber-500/40';
+  const accentText = 'text-amber-400';
+  const accentBg = 'bg-amber-500/10';
+  const accentBorder = 'border-amber-500/40';
 
   const isAnnual = billing === 'annual' && !!tier.priceAnnual;
   const displayPrice = isAnnual ? tier.priceAnnual! : tier.price;
