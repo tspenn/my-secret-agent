@@ -21,13 +21,49 @@ export const APP_MODE: AppMode = rawMode === 'gia' ? 'gia' : 'secret_agent';
 export interface TierConfig {
   id: string;
   label: string;
+  /** Monthly price string, e.g. "$4.99/mo" */
   price: string;
+  /** Optional annual price string, e.g. "$49.99/yr" */
+  priceAnnual?: string;
+  /** Optional savings note shown next to annual price, e.g. "2 months free" */
+  annualSavingsNote?: string;
+  /** Optional trial badge text, e.g. "10 days free" */
   trial?: string;
+  /** Optional small note shown below trial badge */
   trialNote?: string;
+  /** Short mission-count description, e.g. "3–4 missions" */
   missionsLabel: string;
+  /** Short cadence description, e.g. "Hourly checks" */
   interval: string;
+  /** Feature bullets shown on landing page pricing card */
+  featureBullets?: string[];
+  /** True for the tier currently in use (shown in in-app pricing panel) */
   current?: boolean;
+  /** Marks the "most popular" tier on the landing page */
   highlight?: boolean;
+  /** True if the tier is free / signup-only — CTA opens signup modal instead of Stripe */
+  isFree?: boolean;
+  /** Stripe payment link for monthly subscription. Replace with your real link before going live. */
+  stripeLink?: string;
+  /** Stripe payment link for annual subscription. Optional. */
+  stripeLinkAnnual?: string;
+}
+
+export interface LandingConfig {
+  /** Bold marketing headline, max 1–2 lines. */
+  headline: string;
+  /** Word inside the headline that gets the brand color highlight. */
+  headlineHighlight?: string;
+  /** Two-sentence description below the headline. */
+  description: string;
+  /** Hero CTA button label. */
+  heroCta: string;
+  /** Microcopy under the hero CTA button. */
+  heroCtaNote: string;
+  /** Pricing section heading. */
+  pricingHeading: string;
+  /** Pricing section sub-line. */
+  pricingSubhead: string;
 }
 
 export interface ModeConfig {
@@ -41,12 +77,14 @@ export interface ModeConfig {
   defaultView: 'agent' | 'command';
   /** Active mission limit on the entry/default tier */
   missionLimit: number;
-  /** Pricing tiers shown in the upgrade panel */
+  /** Pricing tiers shown in the upgrade panel + landing page */
   tiers: TierConfig[];
   /** Browser tab title */
   documentTitle: string;
   /** Header brand color hint */
   brandAccent: 'amber' | 'emerald';
+  /** Marketing landing page copy */
+  landing: LandingConfig;
 }
 
 // ─── Secret Agent (App 1) ─────────────────────────────────────────────────────
@@ -59,31 +97,73 @@ const SECRET_AGENT_CONFIG: ModeConfig = {
   missionLimit: 4,
   documentTitle: 'My Secret Agent',
   brandAccent: 'amber',
+  landing: {
+    headline: 'A silent watchman for the things you can\'t watch yourself.',
+    headlineHighlight: 'silent watchman',
+    description:
+      'Set up missions in plain English — weather, sale prices, stock thresholds, bank balances. Your secret agent watches in the background and alerts you the moment something changes.',
+    heroCta: 'Start Free — No credit card',
+    heroCtaNote: 'Free forever. Upgrade anytime. Cancel anytime.',
+    pricingHeading: 'Clearance Levels',
+    pricingSubhead: 'Pick a tier when you\'re ready. Trial first, no card required.',
+  },
   tiers: [
     {
       id: 'entry',
       label: 'Entry',
       price: '$4.99/mo',
+      priceAnnual: '$49.99/yr',
+      annualSavingsNote: '2 months free',
       trial: '10 days free',
       trialNote: 'No credit card — just an email to start.',
       missionsLabel: '3–4 missions',
       interval: 'Hourly checks',
       current: true,
+      isFree: true, // CTA opens signup modal — Stripe charges only after trial ends
+      featureBullets: [
+        'Up to 4 active missions',
+        'Hourly checks',
+        'Push notifications to any device',
+        'Email support',
+      ],
+      stripeLink: 'https://buy.stripe.com/REPLACE_WITH_ENTRY_MONTHLY_LINK',
+      stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_ENTRY_ANNUAL_LINK',
     },
     {
       id: 'agent',
       label: 'Agent',
       price: '$14.99/mo',
+      priceAnnual: '$149.99/yr',
+      annualSavingsNote: '2 months free',
       missionsLabel: 'Unlimited missions',
       interval: 'Hourly checks',
       highlight: true,
+      featureBullets: [
+        'Unlimited missions',
+        'Hourly checks',
+        'Push + email notifications',
+        'Priority support',
+      ],
+      stripeLink: 'https://buy.stripe.com/REPLACE_WITH_AGENT_MONTHLY_LINK',
+      stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_AGENT_ANNUAL_LINK',
     },
     {
       id: 'agency',
       label: 'Agency',
       price: '$29.99/mo',
+      priceAnnual: '$299.99/yr',
+      annualSavingsNote: '2 months free',
       missionsLabel: 'Unlimited + advanced',
       interval: 'Priority checks',
+      featureBullets: [
+        'Unlimited missions',
+        'Priority hourly checks',
+        'Push, email & SMS alerts',
+        'Advanced filters & rules',
+        'Premium support',
+      ],
+      stripeLink: 'https://buy.stripe.com/REPLACE_WITH_AGENCY_MONTHLY_LINK',
+      stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_AGENCY_ANNUAL_LINK',
     },
   ],
 };
@@ -98,22 +178,55 @@ const GIA_CONFIG: ModeConfig = {
   missionLimit: Infinity,
   documentTitle: 'GIA — Operations Hub',
   brandAccent: 'emerald',
+  landing: {
+    headline: 'Command center for the watchmen you can\'t hire.',
+    headlineHighlight: 'Command center',
+    description:
+      'Run unlimited missions, monitor every signal that matters, and command your operations from one encrypted hub. Built for power users who outgrew the entry tier.',
+    heroCta: 'Start Free — No credit card',
+    heroCtaNote: 'Free account. Subscribe when you\'re ready. Cancel anytime.',
+    pricingHeading: 'Clearance Levels',
+    pricingSubhead: 'Both tiers ship with unlimited missions. Pick by feature depth.',
+  },
   tiers: [
     {
       id: 'agent',
       label: 'Agent',
       price: '$14.99/mo',
+      priceAnnual: '$149.99/yr',
+      annualSavingsNote: '2 months free',
       missionsLabel: 'Unlimited missions',
       interval: 'Hourly checks',
       current: true,
+      featureBullets: [
+        'Unlimited missions',
+        'Hourly checks',
+        'Full Command Center dashboard',
+        'Push notifications',
+        'Priority support',
+      ],
+      stripeLink: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENT_MONTHLY_LINK',
+      stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENT_ANNUAL_LINK',
     },
     {
       id: 'agency',
       label: 'Agency',
       price: '$29.99/mo',
+      priceAnnual: '$299.99/yr',
+      annualSavingsNote: '2 months free',
       missionsLabel: 'Unlimited + advanced',
       interval: 'Priority checks',
       highlight: true,
+      featureBullets: [
+        'Unlimited missions',
+        'Priority hourly checks',
+        'Full Command Center dashboard',
+        'Push, email & SMS alerts',
+        'Advanced filters & rules',
+        'Premium support',
+      ],
+      stripeLink: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENCY_MONTHLY_LINK',
+      stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_GIA_AGENCY_ANNUAL_LINK',
     },
   ],
 };
