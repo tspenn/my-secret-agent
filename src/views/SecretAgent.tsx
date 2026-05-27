@@ -547,9 +547,14 @@ export default function SecretAgent({
 
         {/* Empty state */}
         {missions.length === 0 && (
-          <div className="text-center py-12 border border-dashed border-[#2e2e2e] rounded-sm">
-            <p className="font-mono text-xs text-[#8a8a8a] tracking-widest uppercase">No active missions</p>
-            <p className="font-mono text-[12px] text-[#777] mt-1">Deploy your first agent above.</p>
+          <div className="text-center py-8 border border-dashed border-[#2e2e2e] rounded-sm overflow-hidden">
+            <img
+              src="/agent-peek.png"
+              alt="Agent waiting for a mission"
+              className="w-full max-w-sm mx-auto rounded-sm opacity-80"
+            />
+            <p className="font-mono text-xs text-[#8a8a8a] tracking-widest uppercase mt-4">No active missions</p>
+            <p className="font-mono text-[12px] text-[#777] mt-1">Your agent is standing by. Deploy one above.</p>
           </div>
         )}
 

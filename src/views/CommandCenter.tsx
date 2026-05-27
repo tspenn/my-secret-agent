@@ -233,6 +233,16 @@ export default function CommandCenter({
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,_rgba(16,185,129,0.06)_0%,_transparent_60%)]" />
         <div className="absolute inset-0 cc-grid-bg opacity-30" />
         <div className="relative max-w-7xl mx-auto px-6 py-16 md:py-24 flex flex-col md:flex-row items-start md:items-center gap-10">
+
+          {/* Van image */}
+          <div className="flex-shrink-0 w-full md:w-72 lg:w-96 order-first md:order-last">
+            <img
+              src="/agent-van.png"
+              alt="The Van — surveillance command"
+              className="w-full h-auto rounded-2xl shadow-2xl shadow-black/60 opacity-90"
+            />
+          </div>
+
           <div className="flex-1">
             <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 py-1 text-xs text-emerald-400 font-mono tracking-wider mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -386,7 +396,12 @@ export default function CommandCenter({
               </button>
             </div>
           ) : tabMissions.length === 0 ? (
-            <div className="px-6 py-12 text-center">
+            <div className="px-6 py-8 text-center">
+              <img
+                src="/agent-waiting.png"
+                alt="Agent standing by"
+                className="w-64 mx-auto rounded-xl opacity-70 mb-4"
+              />
               <p className="text-xs font-mono text-zinc-600 tracking-widest uppercase">No missions in this view</p>
               <button
                 onClick={onSwitchMode}
@@ -489,6 +504,15 @@ export default function CommandCenter({
                 </button>
               ))}
             </div>
+          </div>
+
+          {/* Handler at the monitors */}
+          <div className="rounded-2xl overflow-hidden border border-zinc-800">
+            <img
+              src="/agent-monitors.png"
+              alt="Your handler at the monitors"
+              className="w-full h-auto opacity-80"
+            />
           </div>
 
           {/* Pricing / Tier panel */}

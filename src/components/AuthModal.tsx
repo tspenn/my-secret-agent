@@ -132,8 +132,12 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signin' }
 
         {confirmSent ? (
           // ─── Email Confirmation State ────────────────────────────────────────
-          <div className="px-6 py-10 text-center">
-            <div className="text-5xl mb-4">📬</div>
+          <div className="px-6 py-6 text-center">
+            <img
+              src="/agent-letter.png"
+              alt="Message delivered"
+              className="w-full max-w-[220px] mx-auto rounded-lg mb-4 opacity-90"
+            />
             <p className="text-[#f5f0e8] font-semibold text-lg mb-2">Check your email</p>
             <p className="font-mono text-[12px] text-[#b0b0b0] leading-relaxed mb-1">
               We sent a confirmation link to:
