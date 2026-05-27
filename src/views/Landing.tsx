@@ -57,8 +57,19 @@ export default function Landing() {
 
       {/* ─── Hero ────────────────────────────────────────────────────────────── */}
       <section className="border-b border-[#2a2a2a] relative overflow-hidden">
-        <div className="relative max-w-6xl mx-auto px-6 py-20 md:py-28">
-          <div className="max-w-3xl">
+        <div className="relative max-w-6xl mx-auto px-6 py-16 md:py-24 flex flex-col md:flex-row items-center gap-12">
+
+          {/* Hero image */}
+          <div className="flex-shrink-0 w-64 md:w-80 lg:w-96">
+            <img
+              src="/agent-hero.png"
+              alt="Your secret agent"
+              className="w-full h-auto rounded-2xl shadow-2xl shadow-black/60"
+            />
+          </div>
+
+          {/* Hero copy */}
+          <div className="flex-1 text-center md:text-left">
             <div className={`inline-flex items-center gap-2 ${accentBg} border ${accentBorder} rounded-full px-3 py-1 mb-6`}>
               <Shield size={11} className={accentText} />
               <span className={`font-mono text-[11px] tracking-widest uppercase ${accentText}`}>
@@ -74,7 +85,7 @@ export default function Landing() {
               {MODE.landing.description}
             </p>
 
-            <div className="flex flex-col items-start gap-3">
+            <div className="flex flex-col items-center md:items-start gap-3">
               <button onClick={openSignUp} className="activate-btn text-base px-8 py-3.5">
                 {MODE.landing.heroCta}
               </button>
@@ -83,6 +94,7 @@ export default function Landing() {
               </p>
             </div>
           </div>
+
         </div>
       </section>
 

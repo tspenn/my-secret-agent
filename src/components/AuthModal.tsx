@@ -113,20 +113,20 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signin' }
         className="relative w-full max-w-sm bg-[#1a1a1a] border border-[#333] rounded-md shadow-2xl"
       >
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#2e2e2e]">
-          <div className="flex items-center gap-2.5">
-            <Lock size={13} className="text-amber-500/80" />
-            <span className="font-mono text-[11px] text-amber-500/70 tracking-[0.3em] uppercase">
-              Skyland Reach
-            </span>
-          </div>
+        {/* Hero image header */}
+        <div className="relative w-full h-36 overflow-hidden rounded-t-md">
+          <img
+            src="/agent-hero.png"
+            alt="Your secret agent"
+            className="w-full h-full object-cover object-top"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/20 to-[#1a1a1a]" />
           <button
             onClick={onClose}
             aria-label="Close"
-            className="text-[#8a8a8a] hover:text-white transition-colors"
+            className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full bg-black/50 text-white/70 hover:text-white hover:bg-black/80 transition-colors"
           >
-            <X size={16} />
+            <X size={14} />
           </button>
         </div>
 
