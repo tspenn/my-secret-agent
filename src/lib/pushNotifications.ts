@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string | undefined;
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY_MY_SECRET_AGENT as string | undefined;
 const SW_PATH = '/sw.js';
 
 /** Convert a VAPID public key (base64url) to a Uint8Array for the Push API */

@@ -38,6 +38,8 @@ export interface SecretAgentMission {
   last_alert_sent_at: string | null;
   last_value: string | null;
   check_interval_minutes: number;
+  notify_push: boolean;
+  notify_sms: boolean;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;

@@ -7,7 +7,7 @@
     - air_quality        (Open-Meteo, no key)
     - website_change     (HTML hash diff, no key)
     - rss_feed           (RSS/Atom poll, no key)
-    - news_keyword       (NewsAPI — requires NEWS_API_KEY in edge fn secrets)
+    - news_keyword       (Currents API — requires CURRENTS_API_KEY in edge fn secrets)
 */
 
 ALTER TABLE secret_agent_missions

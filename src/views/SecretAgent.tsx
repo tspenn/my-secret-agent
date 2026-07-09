@@ -1,14 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Eye, Shield, Cloud, Tag, Settings, Bell, BellOff, LogOut, LogIn, TrendingUp,
-  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, X,
+  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, X, MessageSquare, Phone,
 } from 'lucide-react';
 import { supabase, type SecretAgentMission, type WatchType, type NewMission, parseCondition } from '../lib/supabase';
 import { signOut } from '../lib/auth';
 import { pushSupported, getPushPermission, enablePushNotifications, disablePushNotifications } from '../lib/pushNotifications';
 import AuthModal from '../components/AuthModal';
+import AdCard from '../components/AdCard';
+import AdSidebar from '../components/AdSidebar';
 import type { AuthState } from '../lib/auth';
 import { MODE, atMissionLimit } from '../lib/appMode';
+import { ADS, adsWithMedia } from '../lib/ads';
 
 type UserTier = 'free' | 'agent' | 'network';
 
@@ -170,9 +173,16 @@ export default function SecretAgent({
   const [activating, setActivating] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [userTier, setUserTier] = useState<UserTier>('free');
   const [showVanUpgradePrompt, setShowVanUpgradePrompt] = useState(false);
+  const [profilePhone, setProfilePhone] = useState('');
+  const [profileSmsEnabled, setProfileSmsEnabled] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsSaved, setSettingsSaved] = useState(false);
+  const [newNotifyPush, setNewNotifyPush] = useState(true);
+  const [newNotifySms, setNewNotifySms] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const user = auth.user;
@@ -193,26 +203,42 @@ export default function SecretAgent({
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('tier')
+        .select('tier, phone, sms_enabled')
         .eq('id', user.id)
         .maybeSingle();
       if (error || !data) {
         setUserTier('free');
         return;
       }
-      const t = (data as { tier?: string }).tier;
+      const row = data as { tier?: string; phone?: string | null; sms_enabled?: boolean };
+      const t = row.tier;
       if (t === 'agent' || t === 'network') {
         setUserTier(t);
       } else {
         setUserTier('free');
       }
+      setProfilePhone(row.phone ?? '');
+      setProfileSmsEnabled(row.sms_enabled ?? false);
     } catch {
       setUserTier('free');
     }
   }
 
+  async function saveProfileSettings() {
+    if (!user) return;
+    setSettingsSaving(true);
+    setSettingsSaved(false);
+    const phone = profilePhone.trim() || null;
+    await supabase
+      .from('profiles')
+      .upsert({ id: user.id, phone, sms_enabled: profileSmsEnabled }, { onConflict: 'id' });
+    setSettingsSaving(false);
+    setSettingsSaved(true);
+    setTimeout(() => setSettingsSaved(false), 3000);
+  }
+
   function handleVanClick() {
-    if (userTier === 'free') {
+    if (userTier !== 'network') {
       setShowVanUpgradePrompt(true);
     } else {
       setShowVanUpgradePrompt(false);
@@ -283,6 +309,8 @@ export default function SecretAgent({
       status_message: WATCH_STATUS[watchType],
       active: true,
       check_interval_minutes: 60,
+      notify_push: newNotifyPush,
+      notify_sms: newNotifySms,
       metadata: {},
     };
 
@@ -369,7 +397,7 @@ export default function SecretAgent({
           )}
 
           <button
-            onClick={() => setShowAuthModal(true)}
+            onClick={() => setShowSettingsModal(true)}
             className="w-8 h-8 flex items-center justify-center rounded-full border border-[#333] hover:border-amber-500/50 transition-colors duration-200 text-[#a0a0a0] hover:text-amber-400"
             title="Settings"
           >
@@ -378,14 +406,19 @@ export default function SecretAgent({
         </div>
       </header>
 
-      <main className="flex-1 max-w-3xl mx-auto w-full px-6 py-12 md:py-16">
+      {/* Sidebar + content layout — sidebars only visible on large screens for free users */}
+      <div className="flex-1 flex gap-4 max-w-7xl mx-auto w-full px-4 py-12 md:py-16">
+
+        {userTier === 'free' && <AdSidebar ads={adsWithMedia()} side="left" />}
+
+        <main className="flex-1 min-w-0 px-2">
 
         {/* The Van upgrade prompt — shown inline when a free-tier user clicks The Van */}
         {showVanUpgradePrompt && (
           <div className="mb-8 flex items-start gap-4 bg-amber-500/10 border border-amber-500/30 rounded-sm px-5 py-4">
             <div className="flex-1">
               <p className="font-mono text-[13px] text-amber-400 tracking-wide leading-relaxed">
-                The Van is where your handler watches everything. Upgrade to Agent to unlock it.
+                The Van is where your handler watches everything. Upgrade to Network to unlock it.
               </p>
               <button
                 onClick={() => setShowAuthModal(true)}
@@ -462,6 +495,42 @@ export default function SecretAgent({
 
           <div className="mt-10 flex flex-col items-start gap-5">
 
+            {/* Per-mission notification preference */}
+            <div className="flex flex-col gap-2">
+              <p className="font-mono text-[11px] text-[#777] uppercase tracking-[0.2em]">If this happens, notify me via:</p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNewNotifyPush((v) => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border font-mono text-[12px] uppercase tracking-widest transition-colors duration-150 ${
+                    newNotifyPush
+                      ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
+                      : 'border-[#333] text-[#666] hover:border-[#555] hover:text-[#999]'
+                  }`}
+                >
+                  <Bell size={11} />
+                  Push
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNewNotifySms((v) => !v)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border font-mono text-[12px] uppercase tracking-widest transition-colors duration-150 ${
+                    newNotifySms
+                      ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
+                      : 'border-[#333] text-[#666] hover:border-[#555] hover:text-[#999]'
+                  }`}
+                >
+                  <MessageSquare size={11} />
+                  SMS
+                </button>
+              </div>
+              {newNotifySms && !profilePhone && (
+                <p className="font-mono text-[11px] text-amber-500/70">
+                  Add your phone number in Settings to receive texts.
+                </p>
+              )}
+            </div>
+
             {/* Mission limit warning */}
             {limitReached && user && (
               <div className="w-full bg-amber-500/5 border border-amber-500/20 rounded-sm px-4 py-3">
@@ -471,7 +540,7 @@ export default function SecretAgent({
                     onClick={() => setShowAuthModal(true)}
                     className="text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
                   >
-                    upgrade to Agent ($4.99/mo)
+                    upgrade to Agent ($4.99/mo, up to 10 missions)
                   </button>{' '}
                   for up to 10 missions.
                 </p>
@@ -547,14 +616,16 @@ export default function SecretAgent({
 
         {/* Empty state */}
         {missions.length === 0 && (
-          <div className="text-center py-8 border border-dashed border-[#2e2e2e] rounded-sm overflow-hidden">
-            <img
-              src="/agent-peek.png"
-              alt="Agent waiting for a mission"
-              className="w-full max-w-sm mx-auto rounded-sm opacity-80"
-            />
-            <p className="font-mono text-xs text-[#8a8a8a] tracking-widest uppercase mt-4">No active missions</p>
+          <div className="text-center py-12 border border-dashed border-[#2e2e2e] rounded-sm">
+            <p className="font-mono text-xs text-[#8a8a8a] tracking-widest uppercase">No active missions</p>
             <p className="font-mono text-[12px] text-[#777] mt-1">Your agent is standing by. Deploy one above.</p>
+          </div>
+        )}
+
+        {/* In-app ad card — free tier only, shown below mission list */}
+        {userTier === 'free' && ADS.length > 0 && (
+          <div className="mt-8">
+            <AdCard ad={ADS[0]} />
           </div>
         )}
 
@@ -615,7 +686,11 @@ export default function SecretAgent({
             {MODE.landing.pricingSubhead}
           </p>
         </section>
-      </main>
+        </main>
+
+        {userTier === 'free' && <AdSidebar ads={adsWithMedia()} side="right" />}
+
+      </div>{/* end sidebar layout */}
 
       <Ticker />
 
@@ -627,6 +702,90 @@ export default function SecretAgent({
             loadMissions();
           }}
         />
+      )}
+
+      {/* Settings modal */}
+      {showSettingsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+          <div className="relative bg-[#1c1c1c] border border-[#333] rounded-sm w-full max-w-md p-6 shadow-2xl">
+            <button
+              onClick={() => setShowSettingsModal(false)}
+              className="absolute top-4 right-4 text-[#666] hover:text-amber-400 transition-colors"
+              aria-label="Close"
+            >
+              <X size={16} />
+            </button>
+
+            <p className="font-mono text-[11px] text-amber-400/70 tracking-[0.3em] uppercase mb-4">— Settings —</p>
+
+            {/* Account section */}
+            <div className="mb-6 pb-6 border-b border-[#2a2a2a]">
+              <p className="font-mono text-[13px] text-[#a0a0a0] uppercase tracking-widest mb-2">Account</p>
+              {user ? (
+                <div className="flex items-center justify-between">
+                  <span className="text-[#f5f0e8] text-sm truncate max-w-[200px]">{user.email}</span>
+                  <button
+                    onClick={() => { signOut(); setShowSettingsModal(false); }}
+                    className="flex items-center gap-1.5 text-[12px] font-mono uppercase tracking-widest text-[#a0a0a0] hover:text-red-400 transition-colors duration-150"
+                  >
+                    <LogOut size={12} />
+                    Sign out
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setShowSettingsModal(false); setShowAuthModal(true); }}
+                  className="flex items-center gap-1.5 text-[12px] font-mono uppercase tracking-widest text-amber-400 hover:text-amber-300 transition-colors"
+                >
+                  <LogIn size={12} />
+                  Sign in
+                </button>
+              )}
+            </div>
+
+            {/* SMS alerts — available to all tiers */}
+            <div>
+              <p className="font-mono text-[13px] text-[#a0a0a0] uppercase tracking-widest mb-3 flex items-center gap-2">
+                <MessageSquare size={13} className="text-amber-400" />
+                SMS Alerts
+              </p>
+
+              <label className="block mb-3">
+                <span className="font-mono text-[12px] text-[#888] uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                  <Phone size={11} /> Mobile number
+                </span>
+                <input
+                  type="tel"
+                  value={profilePhone}
+                  onChange={(e) => setProfilePhone(e.target.value)}
+                  placeholder="+1 555 000 0000"
+                  className="w-full bg-[#111] border border-[#333] focus:border-amber-500/60 outline-none rounded-sm px-3 py-2 font-mono text-sm text-[#f5f0e8] placeholder-[#555] transition-colors"
+                />
+                <span className="font-mono text-[11px] text-[#666] mt-1 block">Include country code (e.g. +1 for US)</span>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer mb-5">
+                <div
+                  onClick={() => setProfileSmsEnabled((v) => !v)}
+                  className={`relative w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0 ${profileSmsEnabled ? 'bg-amber-500' : 'bg-[#333]'}`}
+                >
+                  <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${profileSmsEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                </div>
+                <span className="font-mono text-[13px] text-[#c8c0b0]">
+                  Text me when a mission fires
+                </span>
+              </label>
+
+              <button
+                onClick={saveProfileSettings}
+                disabled={settingsSaving}
+                className="w-full font-mono text-[12px] uppercase tracking-widest bg-amber-500 hover:bg-amber-400 disabled:bg-amber-800 text-[#1a1a1a] font-semibold px-4 py-2 rounded-sm transition-colors duration-150"
+              >
+                {settingsSaving ? 'Saving…' : settingsSaved ? 'Saved ✓' : 'Save Settings'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

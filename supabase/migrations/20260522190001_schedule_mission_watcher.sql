@@ -5,11 +5,16 @@
     1. Enable "pg_cron"
     2. Enable "pg_net"
 
-  After running this migration, replace the two placeholder values:
-    - YOUR_PROJECT_REF  → your Supabase project reference (e.g. abcdefghijkl)
-    - YOUR_SERVICE_ROLE_KEY → from Dashboard → Settings → API → service_role key
+  NOTE: This cron job is already live on the Friday Canvas Supabase project
+  (psbdjnqcjpxapypcfigx) running on schedule '0 * * * *' (every hour at :00).
+  The job was created manually with the real project ref and service role key.
 
-  To update an existing job, call cron.unschedule first, then re-run.
+  To recreate or update the job, run in the SQL editor:
+
+    SELECT cron.unschedule('secret-agent-mission-watcher');
+
+  Then re-run this migration with real values substituted below.
+  The service role key is in: Dashboard → Settings → API → service_role (secret key)
 */
 
 SELECT cron.schedule(
@@ -17,7 +22,7 @@ SELECT cron.schedule(
   '0 * * * *',                              -- every hour at :00
   $$
   SELECT net.http_post(
-    url     := 'https://YOUR_PROJECT_REF.supabase.co/functions/v1/mission-watcher',
+    url     := 'https://psbdjnqcjpxapypcfigx.supabase.co/functions/v1/mission-watcher',
     headers := jsonb_build_object(
       'Content-Type',  'application/json',
       'Authorization', 'Bearer YOUR_SERVICE_ROLE_KEY'
