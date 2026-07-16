@@ -76,6 +76,11 @@ export default function AuthModal({ onClose, onSuccess, initialMode = 'signin' }
         if (err) throw err;
         if (data.session) {
           onSuccess();
+        } else if (data.user?.identities?.length === 0) {
+          // Supabase returns a fake success with no identities when the email
+          // is already registered in the shared project — no confirmation email
+          // is ever sent, so showing "Check your inbox" would be a dead end.
+          setExistingAccount(true);
         } else {
           setConfirmedEmail(email);
           setConfirmSent(true);
