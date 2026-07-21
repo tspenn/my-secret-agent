@@ -39,6 +39,7 @@ export interface SecretAgentMission {
   last_value: string | null;
   check_interval_minutes: number;
   notify_push: boolean;
+  /** @deprecated Unused — alerts are web push only. Always false on new missions. */
   notify_sms: boolean;
   metadata: Record<string, unknown>;
   created_at: string;

@@ -16,15 +16,12 @@
  *   WEB_PUSH_PUBLIC_KEY_MY_SECRET_AGENT     npx web-push generate-vapid-keys → publicKey
  *   WEB_PUSH_PRIVATE_KEY_MY_SECRET_AGENT    npx web-push generate-vapid-keys → privateKey
  *   WEB_PUSH_CONTACT_EMAIL_MY_SECRET_AGENT  mailto:you@yourdomain.com
- *   TWILIO_ACCOUNT_SID                      Twilio console → Account SID
- *   TWILIO_API_KEY                          Twilio console → API Keys → SK...
- *   TWILIO_API_SECRET                       Twilio console → API Keys → secret
- *   TWILIO_FROM_NUMBER                      +17175275505
  *
  * Naming convention: all env vars are app-suffixed (_MY_SECRET_AGENT) because
  * this Supabase project is shared with sister apps (FRIDAY, GoNews, GoShop, etc.)
  * and each app needs its own VAPID key pair + scoped push subscriptions.
- * Twilio keys are not suffixed because My Secret Agent is the only SMS app for now.
+ *
+ * Alerts are web push only — no carrier SMS / Twilio.
  */
 
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -419,52 +416,6 @@ async function sendPushToUser(userId: string, title: string, body: string, url =
   );
 }
 
-// ─── SMS (Twilio) ─────────────────────────────────────────────────────────────
-// Uses API Key auth (recommended over Account Auth Token).
-// Only fires for agency-tier users who have set a phone number and opted in.
-
-async function sendSmsToUser(userId: string, message: string) {
-  const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-  const apiKey = Deno.env.get("TWILIO_API_KEY");
-  const apiSecret = Deno.env.get("TWILIO_API_SECRET");
-  const from = Deno.env.get("TWILIO_FROM_NUMBER");
-
-  if (!accountSid || !apiKey || !apiSecret || !from) {
-    console.warn("Twilio not configured — skipping SMS");
-    return;
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("phone, sms_enabled")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (!profile?.phone || !profile?.sms_enabled) return;
-
-  const credentials = btoa(`${apiKey}:${apiSecret}`);
-  const res = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-    {
-      method: "POST",
-      headers: {
-        "Authorization": `Basic ${credentials}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: new URLSearchParams({
-        To: profile.phone,
-        From: from,
-        Body: `My Secret Agent: ${message}`,
-      }).toString(),
-    }
-  );
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error("Twilio SMS failed:", res.status, errText);
-  }
-}
-
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 Deno.serve(async (req: Request) => {
@@ -671,17 +622,14 @@ Deno.serve(async (req: Request) => {
       new Date(mission.last_alert_sent_at) > alertCooldown;
 
     if (conditionMet && !alreadyAlerted && !checkError) {
-      // Fire notifications — each channel respects the per-mission flag
+      // Web push only — requires an active subscription on the user's device(s)
       if (mission.notify_push !== false) {
         await sendPushToUser(
           mission.user_id,
           `🔔 ${mission.codename}`,
           alertMessage,
-          "/"
+          `/?mission=${mission.id}`
         );
-      }
-      if (mission.notify_sms !== false) {
-        await sendSmsToUser(mission.user_id, alertMessage);
       }
 
       // Write to app inbox (shared cross-app notification table)

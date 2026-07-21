@@ -76,7 +76,7 @@ export const MODE: ModeConfig = {
     headline: 'A silent watchman for the things you can\'t watch yourself.',
     headlineHighlight: 'silent watchman',
     description:
-      'Set up missions in plain English — weather, sale prices, stock thresholds, bank balances. Your secret agent watches in the background and texts you the moment something changes.',
+      'Set up missions in plain English — weather, sale prices, stock thresholds, bank balances. Your secret agent watches in the background and pings you the moment something changes.',
     heroCta: 'Start Watching — It\'s Free',
     heroCtaNote: 'Free forever on 1 mission. Upgrade anytime.',
     pricingHeading: 'Pick Your Clearance Level',
@@ -94,7 +94,7 @@ export const MODE: ModeConfig = {
       featureBullets: [
         '1 active mission',
         'Daily checks',
-        'Push & SMS notifications',
+        'Push notifications (Ping)',
         'Free forever — no card',
       ],
     },
@@ -110,7 +110,7 @@ export const MODE: ModeConfig = {
       featureBullets: [
         'Up to 10 active missions',
         'Hourly checks',
-        'Push & SMS notifications',
+        'Push notifications (Ping)',
         'All 10 mission types',
       ],
       stripeLink: 'https://buy.stripe.com/REPLACE_WITH_AGENT_MONTHLY_LINK',
@@ -127,7 +127,7 @@ export const MODE: ModeConfig = {
       featureBullets: [
         'Unlimited missions',
         'Faster checks',
-        'Push & SMS notifications',
+        'Push notifications (Ping)',
         'Unlocks The Van dashboard',
         'Weekly mission digest (Sunday nights)',
         'Priority support',

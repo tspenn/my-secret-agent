@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Eye, Shield, Cloud, Tag, Settings, Bell, BellOff, LogOut, LogIn, TrendingUp,
-  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, X, MessageSquare, Phone,
+  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, X,
 } from 'lucide-react';
 import { supabase, type SecretAgentMission, type WatchType, type NewMission, parseCondition } from '../lib/supabase';
 import { signOut } from '../lib/auth';
@@ -177,12 +177,7 @@ export default function SecretAgent({
   const [limitReached, setLimitReached] = useState(false);
   const [userTier, setUserTier] = useState<UserTier>('free');
   const [showVanUpgradePrompt, setShowVanUpgradePrompt] = useState(false);
-  const [profilePhone, setProfilePhone] = useState('');
-  const [profileSmsEnabled, setProfileSmsEnabled] = useState(false);
-  const [settingsSaving, setSettingsSaving] = useState(false);
-  const [settingsSaved, setSettingsSaved] = useState(false);
   const [newNotifyPush, setNewNotifyPush] = useState(true);
-  const [newNotifySms, setNewNotifySms] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const user = auth.user;
@@ -203,38 +198,22 @@ export default function SecretAgent({
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('tier, phone, sms_enabled')
+        .select('tier')
         .eq('id', user.id)
         .maybeSingle();
       if (error || !data) {
         setUserTier('free');
         return;
       }
-      const row = data as { tier?: string; phone?: string | null; sms_enabled?: boolean };
-      const t = row.tier;
+      const t = (data as { tier?: string }).tier;
       if (t === 'agent' || t === 'network') {
         setUserTier(t);
       } else {
         setUserTier('free');
       }
-      setProfilePhone(row.phone ?? '');
-      setProfileSmsEnabled(row.sms_enabled ?? false);
     } catch {
       setUserTier('free');
     }
-  }
-
-  async function saveProfileSettings() {
-    if (!user) return;
-    setSettingsSaving(true);
-    setSettingsSaved(false);
-    const phone = profilePhone.trim() || null;
-    await supabase
-      .from('profiles')
-      .upsert({ id: user.id, phone, sms_enabled: profileSmsEnabled }, { onConflict: 'id' });
-    setSettingsSaving(false);
-    setSettingsSaved(true);
-    setTimeout(() => setSettingsSaved(false), 3000);
   }
 
   function handleVanClick() {
@@ -310,7 +289,7 @@ export default function SecretAgent({
       active: true,
       check_interval_minutes: 60,
       notify_push: newNotifyPush,
-      notify_sms: newNotifySms,
+      notify_sms: false,
       metadata: {},
     };
 
@@ -497,36 +476,22 @@ export default function SecretAgent({
 
             {/* Per-mission notification preference */}
             <div className="flex flex-col gap-2">
-              <p className="font-mono text-[11px] text-[#777] uppercase tracking-[0.2em]">If this happens, notify me via:</p>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setNewNotifyPush((v) => !v)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border font-mono text-[12px] uppercase tracking-widest transition-colors duration-150 ${
-                    newNotifyPush
-                      ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
-                      : 'border-[#333] text-[#666] hover:border-[#555] hover:text-[#999]'
-                  }`}
-                >
-                  <Bell size={11} />
-                  Push
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setNewNotifySms((v) => !v)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border font-mono text-[12px] uppercase tracking-widest transition-colors duration-150 ${
-                    newNotifySms
-                      ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
-                      : 'border-[#333] text-[#666] hover:border-[#555] hover:text-[#999]'
-                  }`}
-                >
-                  <MessageSquare size={11} />
-                  SMS
-                </button>
-              </div>
-              {newNotifySms && !profilePhone && (
+              <p className="font-mono text-[11px] text-[#777] uppercase tracking-[0.2em]">If this happens:</p>
+              <button
+                type="button"
+                onClick={() => setNewNotifyPush((v) => !v)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border font-mono text-[12px] uppercase tracking-widest transition-colors duration-150 w-fit ${
+                  newNotifyPush
+                    ? 'border-amber-500/50 bg-amber-500/10 text-amber-400'
+                    : 'border-[#333] text-[#666] hover:border-[#555] hover:text-[#999]'
+                }`}
+              >
+                <Bell size={11} />
+                Ping me
+              </button>
+              {newNotifyPush && !pushEnabled && pushPermission !== 'unsupported' && (
                 <p className="font-mono text-[11px] text-amber-500/70">
-                  Add your phone number in Settings to receive texts.
+                  Turn on notifications in Settings — and on your device/devices — to receive Pings.
                 </p>
               )}
             </div>
@@ -559,26 +524,6 @@ export default function SecretAgent({
                   : 'Activate Agent'}
             </button>
 
-            {/* Push notifications toggle */}
-            {pushPermission !== 'unsupported' && pushSupported() && (
-              <button
-                onClick={togglePush}
-                className="flex items-center gap-2.5 text-xs font-mono text-[#b0b0b0] hover:text-[#999] transition-colors duration-150 tracking-wide"
-              >
-                {pushEnabled
-                  ? <Bell size={13} className="text-amber-500/70" />
-                  : <BellOff size={13} />
-                }
-                <span className={pushEnabled ? 'text-amber-500/80' : ''}>
-                  {pushEnabled
-                    ? 'Push alerts ON — you will be notified'
-                    : pushPermission === 'denied'
-                      ? 'Push blocked — enable in browser settings'
-                      : 'Allow push notifications to this device'}
-                </span>
-              </button>
-            )}
-
             {/* Auth nudge for unauthenticated users */}
             {!user && (
               <p className="font-mono text-[12px] text-[#8a8a8a] tracking-wide">
@@ -588,7 +533,7 @@ export default function SecretAgent({
                 >
                   Sign in
                 </button>
-                {' '}to save missions and receive alerts between sessions.
+                {' '}to save missions and receive notifications between sessions.
               </p>
             )}
           </div>
@@ -743,46 +688,54 @@ export default function SecretAgent({
               )}
             </div>
 
-            {/* SMS alerts — available to all tiers */}
+            {/* Alert notifications — web push only */}
             <div>
               <p className="font-mono text-[13px] text-[#a0a0a0] uppercase tracking-widest mb-3 flex items-center gap-2">
-                <MessageSquare size={13} className="text-amber-400" />
-                SMS Alerts
+                <Bell size={13} className="text-amber-400" />
+                Notifications
               </p>
 
-              <label className="block mb-3">
-                <span className="font-mono text-[12px] text-[#888] uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                  <Phone size={11} /> Mobile number
-                </span>
-                <input
-                  type="tel"
-                  value={profilePhone}
-                  onChange={(e) => setProfilePhone(e.target.value)}
-                  placeholder="+1 555 000 0000"
-                  className="w-full bg-[#111] border border-[#333] focus:border-amber-500/60 outline-none rounded-sm px-3 py-2 font-mono text-sm text-[#f5f0e8] placeholder-[#555] transition-colors"
-                />
-                <span className="font-mono text-[11px] text-[#666] mt-1 block">Include country code (e.g. +1 for US)</span>
-              </label>
+              <p className="font-mono text-[12px] text-[#888] leading-relaxed mb-4">
+                Mission alerts are delivered as notifications (Ping). You must have notifications turned on on your device/devices to receive them.
+              </p>
 
-              <label className="flex items-center gap-3 cursor-pointer mb-5">
-                <div
-                  onClick={() => setProfileSmsEnabled((v) => !v)}
-                  className={`relative w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0 ${profileSmsEnabled ? 'bg-amber-500' : 'bg-[#333]'}`}
-                >
-                  <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${profileSmsEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
-                </div>
-                <span className="font-mono text-[13px] text-[#c8c0b0]">
-                  Text me when a mission fires
-                </span>
-              </label>
+              {pushPermission === 'unsupported' || !pushSupported() ? (
+                <p className="font-mono text-[12px] text-amber-500/70 leading-relaxed">
+                  Notifications are not supported in this browser. Try Chrome, Edge, or Firefox on a device that allows web push.
+                </p>
+              ) : (
+                <>
+                  <label className="flex items-center gap-3 cursor-pointer mb-3">
+                    <div
+                      onClick={() => { void togglePush(); }}
+                      className={`relative w-9 h-5 rounded-full transition-colors duration-200 flex-shrink-0 ${pushEnabled ? 'bg-amber-500' : 'bg-[#333]'}`}
+                      role="switch"
+                      aria-checked={pushEnabled}
+                    >
+                      <span className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform duration-200 ${pushEnabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+                    </div>
+                    <span className="font-mono text-[13px] text-[#c8c0b0]">
+                      Alert notifications (Ping)
+                    </span>
+                  </label>
 
-              <button
-                onClick={saveProfileSettings}
-                disabled={settingsSaving}
-                className="w-full font-mono text-[12px] uppercase tracking-widest bg-amber-500 hover:bg-amber-400 disabled:bg-amber-800 text-[#1a1a1a] font-semibold px-4 py-2 rounded-sm transition-colors duration-150"
-              >
-                {settingsSaving ? 'Saving…' : settingsSaved ? 'Saved ✓' : 'Save Settings'}
-              </button>
+                  {pushEnabled ? (
+                    <p className="font-mono text-[11px] text-green-500/70 leading-relaxed flex items-start gap-1.5">
+                      <Bell size={11} className="mt-0.5 flex-shrink-0" />
+                      Notifications are on for this device. Keep them enabled in your browser/OS settings too.
+                    </p>
+                  ) : pushPermission === 'denied' ? (
+                    <p className="font-mono text-[11px] text-amber-500/70 leading-relaxed flex items-start gap-1.5">
+                      <BellOff size={11} className="mt-0.5 flex-shrink-0" />
+                      Notifications are blocked. Enable them in your browser or device settings, then turn this back on.
+                    </p>
+                  ) : (
+                    <p className="font-mono text-[11px] text-[#666] leading-relaxed">
+                      Turn this on to allow Pings on this device when a mission fires.
+                    </p>
+                  )}
+                </>
+              )}
             </div>
           </div>
         </div>
