@@ -611,9 +611,11 @@ export default function SecretAgent({
                   </p>
                 )}
 
-                {!t.current && (
+                {!t.current && (t.stripeLink || t.stripeLinkAnnual) && (
                   <a
-                    href="#"
+                    href={t.stripeLink ?? t.stripeLinkAnnual}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="mt-3 block text-center w-full font-mono text-[12px] text-amber-500/60 hover:text-amber-400 border border-amber-500/20 hover:border-amber-500/40 py-1.5 rounded-sm transition-colors uppercase tracking-widest"
                   >
                     Upgrade

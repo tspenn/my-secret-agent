@@ -561,9 +561,11 @@ export default function CommandCenter({
                     </p>
                   )}
 
-                  {!t.current && (
+                  {!t.current && (t.stripeLink || t.stripeLinkAnnual) && (
                     <a
-                      href="#"
+                      href={t.stripeLink ?? t.stripeLinkAnnual}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="mt-2 block text-center text-[12px] font-mono text-emerald-400 hover:text-emerald-300 border border-emerald-500/20 hover:border-emerald-500/40 py-1.5 rounded uppercase tracking-widest transition-colors"
                     >
                       Upgrade

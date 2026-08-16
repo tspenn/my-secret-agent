@@ -119,8 +119,8 @@ export const MODE: ModeConfig = {
         'Push notifications (Ping)',
         'All 10 mission types',
       ],
-      stripeLink: 'https://buy.stripe.com/REPLACE_WITH_AGENT_MONTHLY_LINK',
-      stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_AGENT_ANNUAL_LINK',
+      stripeLink: 'https://buy.stripe.com/6oU5kEcSB3Lw15w9dXeME0l',
+      stripeLinkAnnual: 'https://buy.stripe.com/28E6oIf0Ja9U29AeyheME0m',
     },
     {
       id: 'network',
@@ -138,8 +138,8 @@ export const MODE: ModeConfig = {
         'Weekly mission digest (Sunday nights)',
         'Priority support',
       ],
-      stripeLink: 'https://buy.stripe.com/REPLACE_WITH_NETWORK_MONTHLY_LINK',
-      stripeLinkAnnual: 'https://buy.stripe.com/REPLACE_WITH_NETWORK_ANNUAL_LINK',
+      stripeLink: 'https://buy.stripe.com/14AdRa9Gp6XIaG69dXeME0n',
+      stripeLinkAnnual: 'https://buy.stripe.com/14A8wQaKtci229AfCleME0o',
     },
   ],
 };
