@@ -10,10 +10,10 @@ import AuthModal from '../components/AuthModal';
 import AdCard from '../components/AdCard';
 import AdSidebar from '../components/AdSidebar';
 import type { AuthState } from '../lib/auth';
-import { MODE, atMissionLimit } from '../lib/appMode';
+import { MODE, atMissionLimit, resolveUserTier } from '../lib/appMode';
 import { ADS, adsWithMedia } from '../lib/ads';
 
-type UserTier = 'free' | 'agent' | 'network';
+type UserTier = 'sa_free' | 'agent' | 'network';
 
 // ─── Static config ────────────────────────────────────────────────────────────
 
@@ -175,13 +175,14 @@ export default function SecretAgent({
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
-  const [userTier, setUserTier] = useState<UserTier>('free');
+  const [userTier, setUserTier] = useState<UserTier>('sa_free');
   const [showVanUpgradePrompt, setShowVanUpgradePrompt] = useState(false);
   const [newNotifyPush, setNewNotifyPush] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const user = auth.user;
   const MISSION_LIMIT = MODE.missionLimit;
+  const isFreeTier = userTier === 'sa_free';
 
   useEffect(() => {
     if (user) {
@@ -189,7 +190,7 @@ export default function SecretAgent({
       fetchUserTier();
     } else {
       setMissions([]);
-      setUserTier('free');
+      setUserTier('sa_free');
     }
   }, [user]);
 
@@ -202,17 +203,12 @@ export default function SecretAgent({
         .eq('id', user.id)
         .maybeSingle();
       if (error || !data) {
-        setUserTier('free');
+        setUserTier('sa_free');
         return;
       }
-      const t = (data as { tier?: string }).tier;
-      if (t === 'agent' || t === 'network') {
-        setUserTier(t);
-      } else {
-        setUserTier('free');
-      }
+      setUserTier(resolveUserTier((data as { tier?: string }).tier));
     } catch {
-      setUserTier('free');
+      setUserTier('sa_free');
     }
   }
 
@@ -388,7 +384,7 @@ export default function SecretAgent({
       {/* Sidebar + content layout — sidebars only visible on large screens for free users */}
       <div className="flex-1 flex gap-4 max-w-7xl mx-auto w-full px-4 py-12 md:py-16">
 
-        {userTier === 'free' && <AdSidebar ads={adsWithMedia()} side="left" />}
+        {isFreeTier && <AdSidebar ads={adsWithMedia()} side="left" />}
 
         <main className="flex-1 min-w-0 px-2">
 
@@ -568,7 +564,7 @@ export default function SecretAgent({
         )}
 
         {/* In-app ad card — free tier only, shown below mission list */}
-        {userTier === 'free' && ADS.length > 0 && (
+        {isFreeTier && ADS.length > 0 && (
           <div className="mt-8">
             <AdCard ad={ADS[0]} />
           </div>
@@ -633,7 +629,7 @@ export default function SecretAgent({
         </section>
         </main>
 
-        {userTier === 'free' && <AdSidebar ads={adsWithMedia()} side="right" />}
+        {isFreeTier && <AdSidebar ads={adsWithMedia()} side="right" />}
 
       </div>{/* end sidebar layout */}
 

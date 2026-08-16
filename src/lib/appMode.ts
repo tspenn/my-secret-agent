@@ -57,6 +57,11 @@ export interface ModeConfig {
   /** Active mission limit on the free/entry tier */
   missionLimit: number;
   tiers: TierConfig[];
+  /**
+   * DB value for this app's free tier in shared `profiles.tier`.
+   * Distinct from sister apps (e.g. FRIDAY `support`) so SA signups are filterable.
+   */
+  freeTierId: 'sa_free';
   documentTitle: string;
   brandAccent: 'amber' | 'emerald';
   landing: LandingConfig;
@@ -70,6 +75,7 @@ export const MODE: ModeConfig = {
   domain: 'my-secret-agent.com',
   defaultView: 'agent',
   missionLimit: 1,
+  freeTierId: 'sa_free',
   documentTitle: 'My Secret Agent',
   brandAccent: 'amber',
   landing: {
@@ -84,7 +90,7 @@ export const MODE: ModeConfig = {
   },
   tiers: [
     {
-      id: 'free',
+      id: 'sa_free',
       label: 'Free',
       price: 'Free',
       missionsLabel: '1 active mission',
@@ -141,4 +147,18 @@ export const MODE: ModeConfig = {
 /** Returns true when the user has hit their tier's mission limit */
 export function atMissionLimit(activeMissionCount: number): boolean {
   return activeMissionCount >= MODE.missionLimit;
+}
+
+/** Paid Secret Agent tiers stored on shared `profiles.tier`. */
+export type PaidUserTier = 'agent' | 'network';
+
+/** Free-tier entitlements in this app (includes legacy / sister-app free values). */
+export function isFreeUserTier(tier: string | null | undefined): boolean {
+  return tier !== 'agent' && tier !== 'network';
+}
+
+/** Normalize a profiles.tier value for in-app UI / gating. */
+export function resolveUserTier(tier: string | null | undefined): 'sa_free' | PaidUserTier {
+  if (tier === 'agent' || tier === 'network') return tier;
+  return 'sa_free';
 }

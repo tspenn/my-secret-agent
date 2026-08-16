@@ -37,7 +37,15 @@ export async function signIn(email: string, password: string) {
 }
 
 export async function signUp(email: string, password: string) {
-  return supabase.auth.signUp({ email, password });
+  // Tag SA signups so handle_new_user sets profiles.tier = 'sa_free'
+  // (shared DB default is FRIDAY's 'support').
+  return supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { signup_app: 'secret-agent' },
+    },
+  });
 }
 
 export async function signOut() {
