@@ -285,7 +285,6 @@ export default function SecretAgent({
       active: true,
       check_interval_minutes: 60,
       notify_push: newNotifyPush,
-      notify_sms: false,
       metadata: {},
     };
 
