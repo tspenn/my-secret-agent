@@ -341,12 +341,14 @@ export default function SecretAgent({
           </span>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleVanClick}
-            className="text-[12px] font-mono uppercase tracking-widest text-[#8a8a8a] hover:text-amber-400 transition-colors duration-150 border border-[#333] hover:border-amber-500/40 px-2.5 py-1.5 rounded-sm"
-          >
-            The Van
-          </button>
+          {!isFreeTier && (
+            <button
+              onClick={handleVanClick}
+              className="text-[12px] font-mono uppercase tracking-widest text-[#8a8a8a] hover:text-amber-400 transition-colors duration-150 border border-[#333] hover:border-amber-500/40 px-2.5 py-1.5 rounded-sm"
+            >
+              The Van
+            </button>
+          )}
 
           {user ? (
             <div className="flex items-center gap-2">
@@ -388,8 +390,8 @@ export default function SecretAgent({
 
         <main className="flex-1 min-w-0 px-2">
 
-        {/* The Van upgrade prompt — shown inline when a free-tier user clicks The Van */}
-        {showVanUpgradePrompt && (
+        {/* The Van upgrade prompt — Agent-tier users who click The Van (hidden on free) */}
+        {showVanUpgradePrompt && !isFreeTier && (
           <div className="mb-8 flex items-start gap-4 bg-amber-500/10 border border-amber-500/30 rounded-sm px-5 py-4">
             <div className="flex-1">
               <p className="font-mono text-[13px] text-amber-400 tracking-wide leading-relaxed">
