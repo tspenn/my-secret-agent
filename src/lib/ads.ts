@@ -4,14 +4,17 @@
  * Ads show only to free-tier users (1-mission plan).
  * All media hosted on Supabase Storage public bucket: "ads"
  *
+ * Layout (desktop, free plan): 30% ads | 40% brief | 30% ads of the viewport.
+ * Paid plans keep the same 40% center with empty side columns.
+ *
  * Three placements:
  *   1. In-app card  — appears below the mission list on the Agent Brief view
- *   2. Left sidebar — desktop only, 33% width, square media
- *   3. Right sidebar — desktop only, same spec, reverse order
+ *   2. Left sidebar — desktop only, 30% of screen
+ *   3. Right sidebar — desktop only, 30% of screen, reverse order
  *
  * Media specs:
  *   In-app card:  16:9 — image 1200×675px, video 1280×720px MP4/H.264 <3MB
- *   Sidebars:     1:1  — image 600×600px,  video 600×600px or 1280×720 center-cropped
+ *   Sidebars:     1:1  — fills the 30% column (final pixel sizes TBD)
  */
 
 export interface Ad {

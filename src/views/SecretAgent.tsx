@@ -11,7 +11,7 @@ import AdCard from '../components/AdCard';
 import AdSidebar from '../components/AdSidebar';
 import type { AuthState } from '../lib/auth';
 import { MODE, atMissionLimit, missionLimitForTier, resolveUserTier } from '../lib/appMode';
-import { ADS, adsWithMedia } from '../lib/ads';
+import { ADS } from '../lib/ads';
 
 type UserTier = 'sa_free' | 'agent' | 'network';
 
@@ -363,8 +363,13 @@ export default function SecretAgent({
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-[#f5f0e8] flex flex-col font-['DM_Sans',sans-serif]">
 
-      {/* Header */}
-      <header className="border-b border-[#2e2e2e] px-6 py-4 flex items-center justify-between max-w-3xl mx-auto w-full">
+      <div className="sa-shell">
+        {isFreeTier && <AdSidebar ads={ADS} side="left" />}
+        {!isFreeTier && <aside className="sa-ads" aria-hidden />}
+
+        <div className="sa-center">
+      {/* Header — sits in the 40% center column */}
+      <header className="border-b border-[#2e2e2e] px-4 sm:px-6 py-4 flex items-center justify-between w-full">
         <div className="flex items-center gap-3">
           <span className="pulse-dot" />
           <span className="font-sans font-semibold text-sm tracking-[0.25em] uppercase text-[#f5f0e8]">
@@ -414,12 +419,7 @@ export default function SecretAgent({
         </div>
       </header>
 
-      {/* Sidebar + content layout — sidebars only visible on large screens for free users */}
-      <div className="flex-1 flex gap-4 max-w-7xl mx-auto w-full px-4 py-12 md:py-16">
-
-        {isFreeTier && <AdSidebar ads={adsWithMedia()} side="left" />}
-
-        <main className="flex-1 min-w-0 px-2">
+      <main className="flex-1 w-full px-4 sm:px-6 py-12 md:py-16">
 
         {/* The Van upgrade prompt — Agent-tier users who click The Van (hidden on free) */}
         {showVanUpgradePrompt && !isFreeTier && (
@@ -686,10 +686,11 @@ export default function SecretAgent({
           </p>
         </section>
         </main>
+        </div>{/* sa-center */}
 
-        {isFreeTier && <AdSidebar ads={adsWithMedia()} side="right" />}
-
-      </div>{/* end sidebar layout */}
+        {isFreeTier && <AdSidebar ads={ADS} side="right" />}
+        {!isFreeTier && <aside className="sa-ads" aria-hidden />}
+      </div>{/* sa-shell */}
 
       <Ticker />
 

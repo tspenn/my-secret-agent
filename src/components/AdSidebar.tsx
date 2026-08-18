@@ -17,7 +17,7 @@ function AdSidebarItem({ ad }: AdSidebarItemProps) {
         className="w-full text-left group relative rounded-sm overflow-hidden border border-[#2e2e2e] hover:border-[#444] transition-colors duration-200 bg-[#1e1e1e]"
         aria-label={`Sponsored: ${ad.headline}`}
       >
-        {/* Square media — fills full column width */}
+        {/* Square media — fills the 30% column */}
         <div className="relative w-full aspect-square overflow-hidden bg-[#232323]">
           {ad.video ? (
             <video
@@ -35,7 +35,12 @@ function AdSidebarItem({ ad }: AdSidebarItemProps) {
               alt={ad.headline}
               className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
             />
-          ) : null}
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center px-4 text-center gap-2">
+              <span className="font-mono text-[10px] text-[#555] tracking-widest uppercase">Sponsored</span>
+              <p className="font-mono text-[13px] text-[#c8c0b0] leading-snug">{ad.headline}</p>
+            </div>
+          )}
         </div>
 
         {/* Bottom bar */}
@@ -58,23 +63,14 @@ interface AdSidebarProps {
 }
 
 /**
- * Desktop-only sidebar column (hidden on mobile).
- * Width: 33% of container, min 200px, max 420px.
- * Only renders ads that have image or video media.
- * Right sidebar shows ads in reverse order.
+ * Desktop-only 30% column. Always occupies its grid cell so the brief
+ * stays in the center 40%. Right sidebar reverses ad order.
  */
 export default function AdSidebar({ ads, side }: AdSidebarProps) {
-  const mediaAds = ads.filter((a) => a.image || a.video);
-  const ordered = side === 'right' ? [...mediaAds].reverse() : mediaAds;
-
-  if (ordered.length === 0) return null;
+  const ordered = side === 'right' ? [...ads].reverse() : ads;
 
   return (
-    <aside
-      className="hidden lg:flex flex-col gap-4 flex-shrink-0"
-      style={{ width: 'clamp(200px, 33%, 420px)' }}
-      aria-label={`${side} sponsored content`}
-    >
+    <aside className="sa-ads" aria-label={`${side} sponsored content`}>
       {ordered.map((ad) => (
         <AdSidebarItem key={ad.id} ad={ad} />
       ))}
