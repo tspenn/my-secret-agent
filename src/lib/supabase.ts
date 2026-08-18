@@ -95,6 +95,14 @@ export function parseCondition(text: string): {
   return { operator: 'changes', value: null };
 }
 
+/** News watches search by keyword. Prefer the keyword field unless it is a URL and the when-line says "about …". */
+export function resolveNewsKeyword(target: string, conditionText: string): string {
+  const t = target.trim();
+  const about = conditionText.match(/\babout\s+(.+)$/i)?.[1]?.replace(/[.\s]+$/g, '').trim();
+  if (about && (/^https?:\/\//i.test(t) || !t)) return about;
+  return t;
+}
+
 // ─── Legacy Mission type (original missions table — kept for backward compat) ─
 
 /** @deprecated Use SecretAgentMission instead */

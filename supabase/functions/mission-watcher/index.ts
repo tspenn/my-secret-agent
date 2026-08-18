@@ -1,8 +1,10 @@
 /**
  * Secret Agent / GIA — Mission Watcher Edge Function
  *
- * Scheduled hourly via pg_cron (see migration 20260522190001).
- * Can also be called directly by admins or during development.
+ * Scheduled hourly via pg_cron (see migration 20260818000000).
+ * JWT verification is off: cron must not send Authorization (invalid JWTs 401
+ * at the gateway before this handler runs). Auth is the x-cron-job header
+ * or a service-role Bearer token for manual admin calls.
  *
  * For each active mission due for a check, this function:
  *   1. Fetches the current value from the data source
@@ -285,6 +287,14 @@ async function fetchRssLatest(url: string): Promise<{
   return { latestId: guid.trim(), title, link };
 }
 
+/** Prefer the keyword field unless it is a URL and the when-line says "about …". */
+function resolveNewsKeyword(target: string, conditionText: string): string {
+  const t = (target ?? "").trim();
+  const about = conditionText.match(/\babout\s+(.+)$/i)?.[1]?.replace(/[.\s]+$/g, "").trim();
+  if (about && (/^https?:\/\//i.test(t) || !t)) return about;
+  return t;
+}
+
 // ─── News (Currents API — needs CURRENTS_API_KEY) ────────────────────────────
 // Free tier: 600–1000 req/day, commercial-friendly.
 // Builder plan: $69/mo for 75k/month if you outgrow free.
@@ -418,11 +428,24 @@ async function sendPushToUser(userId: string, title: string, body: string, url =
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
+const CRON_JOB_HEADER = "secret-agent-mission-watcher";
+
+function isAuthorized(req: Request): boolean {
+  const cronHeader = (req.headers.get("x-cron-job") ?? "").trim();
+  if (cronHeader === CRON_JOB_HEADER) return true;
+
+  const cronSecret = (Deno.env.get("MISSION_WATCHER_CRON_SECRET") ?? "").trim();
+  if (cronSecret && cronHeader === cronSecret) return true;
+
+  const authHeader = (req.headers.get("Authorization") ?? "").trim();
+  const serviceKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "").trim();
+  if (serviceKey && authHeader === `Bearer ${serviceKey}`) return true;
+
+  return !Deno.env.get("DENO_DEPLOYMENT_ID");
+}
+
 Deno.serve(async (req: Request) => {
-  // Allow service role key in Authorization header (cron calls) or anon for dev
-  const authHeader = req.headers.get("Authorization") ?? "";
-  const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
-  if (authHeader !== `Bearer ${serviceKey}` && Deno.env.get("DENO_DEPLOYMENT_ID")) {
+  if (!isAuthorized(req)) {
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: { "Content-Type": "application/json" },
@@ -432,12 +455,12 @@ Deno.serve(async (req: Request) => {
   const now = new Date();
   const checkCutoff = new Date(now.getTime() - 55 * 60 * 1000); // 55 min ago
 
-  // Fetch all missions due for a check
-  const { data: missions, error: fetchError } = await supabase
+  // Fetch active missions, then keep those due for a check.
+  // Filter in-process: PostgREST `.or()` breaks on ISO timestamps (colons).
+  const { data: allActive, error: fetchError } = await supabase
     .from("secret_agent_missions")
     .select("*")
-    .eq("active", true)
-    .or(`last_checked_at.is.null,last_checked_at.lt.${checkCutoff.toISOString()}`);
+    .eq("active", true);
 
   if (fetchError) {
     return new Response(JSON.stringify({ error: fetchError.message }), {
@@ -445,6 +468,11 @@ Deno.serve(async (req: Request) => {
       headers: { "Content-Type": "application/json" },
     });
   }
+
+  const missions = (allActive ?? []).filter((m) => {
+    if (!m.last_checked_at) return true;
+    return new Date(m.last_checked_at).getTime() < checkCutoff.getTime();
+  });
 
   const results: { id: string; status: string; error?: string }[] = [];
 
@@ -590,7 +618,8 @@ Deno.serve(async (req: Request) => {
 
         case "news_keyword": {
           const previousLatest = (mission.metadata as { last_published?: string })?.last_published ?? null;
-          const { count, latestTitle, latestUrl, latestPublishedAt } = await fetchNewsKeyword(mission.target, previousLatest);
+          const keyword = resolveNewsKeyword(mission.target, mission.condition_text ?? "");
+          const { count, latestTitle, latestUrl, latestPublishedAt } = await fetchNewsKeyword(keyword, previousLatest);
           lastValue = String(count);
           const isNew = !!previousLatest && !!latestPublishedAt && latestPublishedAt > previousLatest;
           if (latestPublishedAt) metadataUpdate.last_published = latestPublishedAt;
@@ -598,11 +627,11 @@ Deno.serve(async (req: Request) => {
           metadataUpdate.last_url = latestUrl;
           conditionMet = isNew || (!previousLatest && count > 0 && mission.condition_operator === "changes");
           statusMessage = !previousLatest
-            ? `Tracking "${mission.target}" — ${count} matching articles indexed`
+            ? `Tracking "${keyword}" — ${count} matching articles indexed`
             : isNew
               ? `⚠ New article: "${latestTitle?.substring(0, 60)}"`
-              : `No new articles for "${mission.target}"`;
-          alertMessage = `News alert "${mission.target}": ${latestTitle}`;
+              : `No new articles for "${keyword}"`;
+          alertMessage = `News alert "${keyword}": ${latestTitle}`;
           break;
         }
 

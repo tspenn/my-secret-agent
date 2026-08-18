@@ -3,7 +3,7 @@ import {
   Eye, Shield, Cloud, Tag, Settings, Bell, BellOff, LogOut, LogIn, TrendingUp,
   Bitcoin, Activity, Wind, Globe, Rss, Newspaper, X,
 } from 'lucide-react';
-import { supabase, type SecretAgentMission, type WatchType, type NewMission, parseCondition } from '../lib/supabase';
+import { supabase, type SecretAgentMission, type WatchType, type NewMission, parseCondition, resolveNewsKeyword } from '../lib/supabase';
 import { signOut } from '../lib/auth';
 import { pushSupported, getPushPermission, enablePushNotifications, disablePushNotifications } from '../lib/pushNotifications';
 import AuthModal from '../components/AuthModal';
@@ -66,7 +66,7 @@ const WATCH_OPTIONS: { value: WatchType; label: string; placeholder: { target: s
   {
     value: 'news_keyword',
     label: 'News for a Keyword',
-    placeholder: { target: 'tesla recall', condition: 'any new article appears' },
+    placeholder: { target: 'Trump', condition: 'a new article is published' },
   },
 ];
 
@@ -260,7 +260,9 @@ export default function SecretAgent({
   }
 
   async function activateMission() {
-    if (!target.trim() || !condition.trim()) return;
+    const resolvedTarget =
+      watchType === 'news_keyword' ? resolveNewsKeyword(target, condition) : target.trim();
+    if (!resolvedTarget || !condition.trim()) return;
 
     if (!user) {
       setShowAuthModal(true);
@@ -277,7 +279,7 @@ export default function SecretAgent({
       user_id: user.id,
       codename: missionCodename(),
       watch_type: watchType,
-      target: target.trim(),
+      target: resolvedTarget,
       condition_text: condition.trim(),
       condition_operator: operator,
       condition_value: value,
@@ -449,7 +451,7 @@ export default function SecretAgent({
               )}
             </span>
 
-            <span>. Monitor it here:</span>{' '}
+            <span>. {watchType === 'news_keyword' ? 'Keyword:' : 'Monitor it here:'}</span>{' '}
             <input
               type="text"
               value={target}
@@ -511,7 +513,7 @@ export default function SecretAgent({
 
             <button
               onClick={activateMission}
-              disabled={activating || !target.trim() || !condition.trim() || (limitReached && !!user)}
+              disabled={activating || !(watchType === 'news_keyword' ? resolveNewsKeyword(target, condition) : target.trim()) || !condition.trim() || (limitReached && !!user)}
               className="activate-btn"
             >
               {activating
