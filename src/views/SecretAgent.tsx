@@ -66,7 +66,7 @@ const WATCH_OPTIONS: { value: WatchType; label: string; placeholder: { target: s
   {
     value: 'news_keyword',
     label: 'News for a Keyword',
-    placeholder: { target: 'Trump', condition: 'a new article is published' },
+    placeholder: { target: 'Iran war', condition: 'a new article is published' },
   },
 ];
 
@@ -260,9 +260,10 @@ export default function SecretAgent({
   }
 
   async function activateMission() {
-    const resolvedTarget =
-      watchType === 'news_keyword' ? resolveNewsKeyword(target, condition) : target.trim();
-    if (!resolvedTarget || !condition.trim()) return;
+    const isNews = watchType === 'news_keyword';
+    const conditionText = isNews ? 'a new article is published' : condition.trim();
+    const resolvedTarget = isNews ? resolveNewsKeyword(target, conditionText) : target.trim();
+    if (!resolvedTarget || !conditionText) return;
 
     if (!user) {
       setShowAuthModal(true);
@@ -273,14 +274,14 @@ export default function SecretAgent({
 
     setActivating(true);
 
-    const { operator, value } = parseCondition(condition);
+    const { operator, value } = parseCondition(conditionText);
 
     const newMission: NewMission = {
       user_id: user.id,
       codename: missionCodename(),
       watch_type: watchType,
       target: resolvedTarget,
-      condition_text: condition.trim(),
+      condition_text: conditionText,
       condition_operator: operator,
       condition_value: value,
       status_message: WATCH_STATUS[watchType],
@@ -451,23 +452,28 @@ export default function SecretAgent({
               )}
             </span>
 
-            <span>. {watchType === 'news_keyword' ? 'Keyword:' : 'Monitor it here:'}</span>{' '}
+            <span>{watchType === 'news_keyword' ? ' about' : '. Monitor it here:'}</span>{' '}
             <input
               type="text"
               value={target}
               onChange={(e) => setTarget(e.target.value)}
               placeholder={selectedOption.placeholder.target}
               className="ledger-input"
-            />
-            <span>. Sound the alarm when</span>{' '}
-            <input
-              type="text"
-              value={condition}
-              onChange={(e) => setCondition(e.target.value)}
-              placeholder={selectedOption.placeholder.condition}
-              className="ledger-input"
               onKeyDown={(e) => e.key === 'Enter' && activateMission()}
             />
+            {watchType !== 'news_keyword' && (
+              <>
+                <span>. Sound the alarm when</span>{' '}
+                <input
+                  type="text"
+                  value={condition}
+                  onChange={(e) => setCondition(e.target.value)}
+                  placeholder={selectedOption.placeholder.condition}
+                  className="ledger-input"
+                  onKeyDown={(e) => e.key === 'Enter' && activateMission()}
+                />
+              </>
+            )}
             <span>.</span>
           </div>
 
@@ -513,7 +519,7 @@ export default function SecretAgent({
 
             <button
               onClick={activateMission}
-              disabled={activating || !(watchType === 'news_keyword' ? resolveNewsKeyword(target, condition) : target.trim()) || !condition.trim() || (limitReached && !!user)}
+              disabled={activating || !(watchType === 'news_keyword' ? target.trim() : target.trim() && condition.trim()) || (limitReached && !!user)}
               className="activate-btn"
             >
               {activating
