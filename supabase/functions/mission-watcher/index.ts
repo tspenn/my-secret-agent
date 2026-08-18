@@ -354,7 +354,11 @@ function resolveNewsKeyword(target: string, conditionText: string): string {
 // Builder plan: $69/mo for 75k/month if you outgrow free.
 // Docs: https://currentsapi.services/
 
-async function fetchNewsKeyword(keyword: string, since: string | null): Promise<{
+async function fetchNewsKeyword(
+  keyword: string,
+  since: string | null,
+  category?: string | null,
+): Promise<{
   count: number;
   latestTitle: string;
   latestUrl: string;
@@ -363,9 +367,9 @@ async function fetchNewsKeyword(keyword: string, since: string | null): Promise<
   const key = Deno.env.get("CURRENTS_API_KEY");
   if (!key) throw new Error("CURRENTS_API_KEY not configured (currentsapi.services)");
 
-  // Currents API uses "start_date" in ISO 8601 format
   const startParam = since ? `&start_date=${encodeURIComponent(since)}` : "";
-  const url = `https://api.currentsapi.services/v1/search?keywords=${encodeURIComponent(keyword)}&language=en&page_size=5${startParam}&apiKey=${key}`;
+  const categoryParam = category ? `&category=${encodeURIComponent(category)}` : "";
+  const url = `https://api.currentsapi.services/v1/search?keywords=${encodeURIComponent(keyword)}&language=en&page_size=5${startParam}${categoryParam}&apiKey=${key}`;
 
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Currents API HTTP ${res.status}`);
@@ -704,7 +708,8 @@ Deno.serve(async (req: Request) => {
         case "news_keyword": {
           const previousLatest = (mission.metadata as { last_published?: string })?.last_published ?? null;
           const keyword = resolveNewsKeyword(mission.target, mission.condition_text ?? "");
-          const { count, latestTitle, latestUrl, latestPublishedAt } = await fetchNewsKeyword(keyword, previousLatest);
+          const category = (mission.metadata as { category?: string } | null)?.category ?? null;
+          const { count, latestTitle, latestUrl, latestPublishedAt } = await fetchNewsKeyword(keyword, previousLatest, category);
           lastValue = String(count);
           const isNew = !!previousLatest && !!latestPublishedAt && latestPublishedAt > previousLatest;
           if (latestPublishedAt) metadataUpdate.last_published = latestPublishedAt;

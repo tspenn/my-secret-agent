@@ -4,7 +4,7 @@ import {
   ChevronRight, Zap, Globe, FileText,
   AlertTriangle, CheckCircle, Clock, ArrowRight,
   Tag, Cloud, TrendingUp, LogOut, LogIn,
-  Bitcoin, Activity, Wind, Rss, Newspaper,
+  Bitcoin, Activity, Wind, Rss, Newspaper, Trophy,
 } from 'lucide-react';
 import { supabase, type SecretAgentMission, type SecretAgentAlert, type WatchType } from '../lib/supabase';
 import { signOut } from '../lib/auth';
@@ -413,7 +413,8 @@ export default function CommandCenter({
           ) : (
             <div className="divide-y divide-zinc-800/60">
               {tabMissions.map((m) => {
-                const Icon = WATCH_ICONS[m.watch_type as WatchType] ?? Eye;
+                const isSports = (m.metadata as { category?: string } | null)?.category === 'sports';
+                const Icon = isSports ? Trophy : (WATCH_ICONS[m.watch_type as WatchType] ?? Eye);
                 const hasAlert = m.status_message.startsWith('⚠') || m.status_message.startsWith('✓');
                 return (
                   <div

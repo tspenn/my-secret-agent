@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Eye, Shield, Cloud, Tag, Settings, Bell, BellOff, LogOut, LogIn, TrendingUp,
-  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, X,
+  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, Trophy, X,
 } from 'lucide-react';
-import { supabase, type SecretAgentMission, type WatchType, type NewMission, parseCondition, resolveNewsKeyword } from '../lib/supabase';
+import { supabase, type SecretAgentMission, type WatchType, type NewMission, type ConditionOperator, parseCondition, resolveNewsKeyword } from '../lib/supabase';
 import { signOut } from '../lib/auth';
 import { pushSupported, getPushPermission, enablePushNotifications, disablePushNotifications } from '../lib/pushNotifications';
 import AuthModal from '../components/AuthModal';
@@ -17,56 +17,89 @@ type UserTier = 'sa_free' | 'agent' | 'network';
 
 // ─── Static config ────────────────────────────────────────────────────────────
 
-const WATCH_OPTIONS: { value: WatchType; label: string; placeholder: { target: string; condition: string } }[] = [
+const WATCH_OPTIONS: {
+  boardId: string;
+  value: WatchType;
+  label: string;
+  group: 'general' | 'more';
+  placeholder: { target: string; condition: string };
+}[] = [
   {
-    value: 'sale_price',
-    label: 'A Sale Price',
-    placeholder: { target: 'https://store.com/product', condition: 'price drops below $50' },
+    boardId: 'news',
+    value: 'news_keyword',
+    label: 'News',
+    group: 'general',
+    placeholder: { target: 'Iran war', condition: 'any new article' },
   },
   {
+    boardId: 'weather',
     value: 'severe_weather',
-    label: 'Severe Weather',
+    label: 'Weather',
+    group: 'general',
     placeholder: { target: '28677', condition: 'storms today' },
   },
   {
-    value: 'bank_balance',
-    label: 'My Bank Balance',
-    placeholder: { target: 'checking account', condition: 'balance drops below $500' },
+    boardId: 'sports',
+    value: 'news_keyword',
+    label: 'Sports',
+    group: 'general',
+    placeholder: { target: 'Lakers', condition: 'any new article' },
   },
   {
-    value: 'stock_price',
-    label: 'A Stock Price',
-    placeholder: { target: 'AAPL', condition: 'price drops below $150' },
-  },
-  {
-    value: 'crypto_price',
-    label: 'A Crypto Price',
-    placeholder: { target: 'bitcoin', condition: 'drops below $60000' },
-  },
-  {
-    value: 'earthquake',
-    label: 'Earthquake Activity',
-    placeholder: { target: 'California', condition: 'magnitude above 4.5' },
-  },
-  {
-    value: 'air_quality',
-    label: 'Air Quality',
-    placeholder: { target: 'Los Angeles, CA', condition: 'AQI above 100' },
-  },
-  {
+    boardId: 'website',
     value: 'website_change',
-    label: 'A Website Change',
+    label: 'A Website',
+    group: 'general',
     placeholder: { target: 'https://robinhood.com/?classic=1', condition: 'stock goes down 8 pts' },
   },
   {
+    boardId: 'sale_price',
+    value: 'sale_price',
+    label: 'A Sale Price',
+    group: 'more',
+    placeholder: { target: 'https://store.com/product', condition: 'price drops below $50' },
+  },
+  {
+    boardId: 'stock_price',
+    value: 'stock_price',
+    label: 'A Stock Price',
+    group: 'more',
+    placeholder: { target: 'AAPL', condition: 'price drops below $150' },
+  },
+  {
+    boardId: 'crypto_price',
+    value: 'crypto_price',
+    label: 'A Crypto Price',
+    group: 'more',
+    placeholder: { target: 'bitcoin', condition: 'drops below $60000' },
+  },
+  {
+    boardId: 'earthquake',
+    value: 'earthquake',
+    label: 'Earthquake Activity',
+    group: 'more',
+    placeholder: { target: 'California', condition: 'magnitude above 4.5' },
+  },
+  {
+    boardId: 'air_quality',
+    value: 'air_quality',
+    label: 'Air Quality',
+    group: 'more',
+    placeholder: { target: 'Los Angeles, CA', condition: 'AQI above 100' },
+  },
+  {
+    boardId: 'rss_feed',
     value: 'rss_feed',
     label: 'An RSS Feed',
+    group: 'more',
     placeholder: { target: 'https://blog.com/feed.xml', condition: 'a new post is published' },
   },
   {
-    value: 'news_keyword',
-    label: 'News for a Keyword',
-    placeholder: { target: 'Iran war', condition: 'any new article' },
+    boardId: 'bank_balance',
+    value: 'bank_balance',
+    label: 'My Bank Balance',
+    group: 'more',
+    placeholder: { target: 'checking account', condition: 'balance drops below $500' },
   },
 ];
 
@@ -123,7 +156,8 @@ function MissionCard({
   mission: SecretAgentMission;
   onDeactivate: (id: string) => void;
 }) {
-  const Icon = WATCH_ICONS[mission.watch_type as WatchType] ?? Eye;
+  const isSports = (mission.metadata as { category?: string } | null)?.category === 'sports';
+  const Icon = isSports ? Trophy : (WATCH_ICONS[mission.watch_type as WatchType] ?? Eye);
   const isAlert = mission.status_message.startsWith('⚠') || mission.status_message.startsWith('✓');
 
   return (
@@ -164,7 +198,7 @@ export default function SecretAgent({
   auth: AuthState;
   onSwitchMode: () => void;
 }) {
-  const [watchType, setWatchType] = useState<WatchType>('sale_price');
+  const [boardId, setBoardId] = useState('news');
   const [target, setTarget] = useState('');
   const [condition, setCondition] = useState('');
   const [missions, setMissions] = useState<SecretAgentMission[]>([]);
@@ -183,6 +217,8 @@ export default function SecretAgent({
   const user = auth.user;
   const MISSION_LIMIT = MODE.missionLimit;
   const isFreeTier = userTier === 'sa_free';
+  const selectedOption = WATCH_OPTIONS.find((o) => o.boardId === boardId)!;
+  const watchType = selectedOption.value;
 
   useEffect(() => {
     if (user) {
@@ -285,11 +321,11 @@ export default function SecretAgent({
       condition_text: condition.trim(),
       condition_operator: operator,
       condition_value: parsed.value,
-      status_message: WATCH_STATUS[watchType],
+      status_message: boardId === 'sports' ? 'Scanning sports wires.' : WATCH_STATUS[watchType],
       active: true,
       check_interval_minutes: 60,
       notify_push: newNotifyPush,
-      metadata: {},
+      metadata: boardId === 'sports' ? { category: 'sports' } : {},
     };
 
     const { data } = await supabase
@@ -329,8 +365,6 @@ export default function SecretAgent({
       }
     }
   }
-
-  const selectedOption = WATCH_OPTIONS.find((o) => o.value === watchType)!;
 
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-[#f5f0e8] flex flex-col font-['DM_Sans',sans-serif]">
@@ -436,18 +470,22 @@ export default function SecretAgent({
               </button>
               {dropdownOpen && (
                 <div className="absolute left-0 top-full mt-2 bg-[#232323] border border-[#3a3a3a] rounded-sm shadow-2xl z-50 min-w-[200px]">
-                  {WATCH_OPTIONS.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => { setWatchType(opt.value); setDropdownOpen(false); }}
-                      className={`w-full text-left px-4 py-2.5 text-sm font-normal transition-colors duration-100 ${
-                        watchType === opt.value
-                          ? 'text-amber-400 bg-amber-500/10'
-                          : 'text-[#c8c0b0] hover:bg-[#2e2e2e] hover:text-[#f5f0e8]'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
+                  {WATCH_OPTIONS.map((opt, i) => (
+                    <span key={opt.boardId}>
+                      {i > 0 && opt.group !== WATCH_OPTIONS[i - 1].group && (
+                        <span className="block border-t border-[#3a3a3a] my-1" />
+                      )}
+                      <button
+                        onClick={() => { setBoardId(opt.boardId); setDropdownOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm font-normal transition-colors duration-100 ${
+                          boardId === opt.boardId
+                            ? 'text-amber-400 bg-amber-500/10'
+                            : 'text-[#c8c0b0] hover:bg-[#2e2e2e] hover:text-[#f5f0e8]'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    </span>
                   ))}
                 </div>
               )}
