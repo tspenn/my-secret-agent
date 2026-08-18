@@ -70,9 +70,23 @@ export interface SecretAgentAlert {
 //   "balance drops below 500" → { operator: 'below', value: 500 }
 
 export function parseCondition(text: string): {
-  operator: ConditionOperator;
+  operator: ConditionOperator | 'down' | 'up';
   value: number | null;
 } {
+  const down = text.match(
+    /(?:goes?\s+|drops?\s+|falls?\s+)?down\s+(?:by\s+)?(\d+(?:\.\d+)?)/i
+  ) ?? text.match(
+    /(?:drops?|falls?)\s+(?:by\s+)?(\d+(?:\.\d+)?)\s*(?:pts?|points?)/i
+  );
+  if (down) return { operator: 'down', value: parseFloat(down[1]) };
+
+  const up = text.match(
+    /(?:goes?\s+|rises?\s+|gains?\s+)?up\s+(?:by\s+)?(\d+(?:\.\d+)?)/i
+  ) ?? text.match(
+    /(?:rises?|gains?)\s+(?:by\s+)?(\d+(?:\.\d+)?)\s*(?:pts?|points?)/i
+  );
+  if (up) return { operator: 'up', value: parseFloat(up[1]) };
+
   const below = text.match(
     /(?:drops?\s+)?(?:below|under|less\s+than)\s*\$?\s*([\d,]+(?:\.\d+)?)/i
   );

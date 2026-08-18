@@ -26,7 +26,7 @@ const WATCH_OPTIONS: { value: WatchType; label: string; placeholder: { target: s
   {
     value: 'severe_weather',
     label: 'Severe Weather',
-    placeholder: { target: 'Miami, FL', condition: 'any severe weather warning' },
+    placeholder: { target: '28677', condition: 'storms today' },
   },
   {
     value: 'bank_balance',
@@ -56,7 +56,7 @@ const WATCH_OPTIONS: { value: WatchType; label: string; placeholder: { target: s
   {
     value: 'website_change',
     label: 'A Website Change',
-    placeholder: { target: 'https://example.com/page', condition: 'any change appears' },
+    placeholder: { target: 'https://robinhood.com/?classic=1', condition: 'stock goes down 8 pts' },
   },
   {
     value: 'rss_feed',
@@ -66,7 +66,7 @@ const WATCH_OPTIONS: { value: WatchType; label: string; placeholder: { target: s
   {
     value: 'news_keyword',
     label: 'News for a Keyword',
-    placeholder: { target: 'Iran war', condition: 'a new article is published' },
+    placeholder: { target: 'Iran war', condition: 'any new article' },
   },
 ];
 
@@ -260,10 +260,9 @@ export default function SecretAgent({
   }
 
   async function activateMission() {
-    const isNews = watchType === 'news_keyword';
-    const conditionText = isNews ? 'a new article is published' : condition.trim();
-    const resolvedTarget = isNews ? resolveNewsKeyword(target, conditionText) : target.trim();
-    if (!resolvedTarget || !conditionText) return;
+    const resolvedTarget =
+      watchType === 'news_keyword' ? resolveNewsKeyword(target, condition) : target.trim();
+    if (!resolvedTarget || !condition.trim()) return;
 
     if (!user) {
       setShowAuthModal(true);
@@ -274,16 +273,18 @@ export default function SecretAgent({
 
     setActivating(true);
 
-    const { operator, value } = parseCondition(conditionText);
+    const parsed = parseCondition(condition);
+    const operator: ConditionOperator =
+      parsed.operator === 'down' || parsed.operator === 'up' ? 'changes' : parsed.operator;
 
     const newMission: NewMission = {
       user_id: user.id,
       codename: missionCodename(),
       watch_type: watchType,
       target: resolvedTarget,
-      condition_text: conditionText,
+      condition_text: condition.trim(),
       condition_operator: operator,
-      condition_value: value,
+      condition_value: parsed.value,
       status_message: WATCH_STATUS[watchType],
       active: true,
       check_interval_minutes: 60,
@@ -452,7 +453,7 @@ export default function SecretAgent({
               )}
             </span>
 
-            <span>{watchType === 'news_keyword' ? ' about' : '. Monitor it here:'}</span>{' '}
+            <span>. Monitor it here:</span>{' '}
             <input
               type="text"
               value={target}
@@ -461,19 +462,15 @@ export default function SecretAgent({
               className="ledger-input"
               onKeyDown={(e) => e.key === 'Enter' && activateMission()}
             />
-            {watchType !== 'news_keyword' && (
-              <>
-                <span>. Sound the alarm when</span>{' '}
-                <input
-                  type="text"
-                  value={condition}
-                  onChange={(e) => setCondition(e.target.value)}
-                  placeholder={selectedOption.placeholder.condition}
-                  className="ledger-input"
-                  onKeyDown={(e) => e.key === 'Enter' && activateMission()}
-                />
-              </>
-            )}
+            <span>. Sound the alarm when</span>{' '}
+            <input
+              type="text"
+              value={condition}
+              onChange={(e) => setCondition(e.target.value)}
+              placeholder={selectedOption.placeholder.condition}
+              className="ledger-input"
+              onKeyDown={(e) => e.key === 'Enter' && activateMission()}
+            />
             <span>.</span>
           </div>
 
@@ -519,7 +516,7 @@ export default function SecretAgent({
 
             <button
               onClick={activateMission}
-              disabled={activating || !(watchType === 'news_keyword' ? target.trim() : target.trim() && condition.trim()) || (limitReached && !!user)}
+              disabled={activating || !target.trim() || !condition.trim() || (limitReached && !!user)}
               className="activate-btn"
             >
               {activating

@@ -52,6 +52,28 @@ const SEVERE_WMO = new Set([45, 48, 65, 75, 77, 80, 81, 82, 85, 86, 95, 96, 99])
 
 // ─── Data source fetchers ─────────────────────────────────────────────────────
 
+async function geocodeTarget(target: string): Promise<{ lat: number; lon: number }> {
+  const zip = target.trim().match(/^(\d{5})(?:-\d{4})?$/);
+  if (zip) {
+    const zipRes = await fetch(`https://api.zippopotam.us/us/${zip[1]}`);
+    if (zipRes.ok) {
+      const zipData = await zipRes.json();
+      const place = zipData?.places?.[0];
+      const lat = place?.latitude ? parseFloat(place.latitude) : NaN;
+      const lon = place?.longitude ? parseFloat(place.longitude) : NaN;
+      if (!Number.isNaN(lat) && !Number.isNaN(lon)) return { lat, lon };
+    }
+  }
+
+  const geoRes = await fetch(
+    `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(target)}&count=1&language=en&format=json`
+  );
+  const geoData = await geoRes.json();
+  const result = geoData.results?.[0];
+  if (!result) throw new Error(`Could not geocode location: "${target}"`);
+  return { lat: result.latitude, lon: result.longitude };
+}
+
 async function fetchWeather(target: string, metadata: Record<string, unknown>): Promise<{
   wmoCode: number;
   description: string;
@@ -63,14 +85,9 @@ async function fetchWeather(target: string, metadata: Record<string, unknown>): 
   let lon = metadata.lon as number | undefined;
 
   if (!lat || !lon) {
-    const geoRes = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(target)}&count=1&language=en&format=json`
-    );
-    const geoData = await geoRes.json();
-    const result = geoData.results?.[0];
-    if (!result) throw new Error(`Could not geocode location: "${target}"`);
-    lat = result.latitude;
-    lon = result.longitude;
+    const geo = await geocodeTarget(target);
+    lat = geo.lat;
+    lon = geo.lon;
   }
 
   const weatherRes = await fetch(
@@ -205,14 +222,9 @@ async function fetchAirQuality(target: string, metadata: Record<string, unknown>
   let lon = metadata.lon as number | undefined;
 
   if (!lat || !lon) {
-    const geoRes = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(target)}&count=1&format=json`
-    );
-    const geoData = await geoRes.json();
-    const result = geoData.results?.[0];
-    if (!result) throw new Error(`Could not geocode: "${target}"`);
-    lat = result.latitude;
-    lon = result.longitude;
+    const geo = await geocodeTarget(target);
+    lat = geo.lat;
+    lon = geo.lon;
   }
 
   const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto`;
@@ -250,6 +262,48 @@ async function fetchWebsiteHash(url: string): Promise<{ hash: string; size: numb
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
   return { hash, size: stripped.length };
+}
+
+async function fetchPageNumericValue(url: string): Promise<number> {
+  const res = await fetch(url, {
+    headers: { "User-Agent": "Mozilla/5.0 (compatible; SecretAgent/1.0)" },
+    redirect: "follow",
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
+  const html = await res.text();
+
+  const patterns = [
+    /"last_trade_price"\s*:\s*"?([\d.]+)"?/,
+    /"lastPrice"\s*:\s*"?([\d.]+)"?/,
+    /"regularMarketPrice"\s*:\s*"?([\d.]+)"?/,
+    /"mark_price"\s*:\s*"?([\d.]+)"?/,
+    /"price"\s*:\s*"?([\d.,]+)"?/,
+    /property="product:price:amount"\s+content="([\d.,]+)"/,
+    /data-price="([\d.]+)"/i,
+    /itemprop="price"[^>]*content="([\d.]+)"/i,
+    /\$\s*([\d,]+\.\d{2})\b/,
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (!match) continue;
+    const n = parseFloat(match[1].replace(/,/g, ""));
+    if (!isNaN(n) && n > 0) return n;
+  }
+
+  throw new Error("Could not read a number from this page");
+}
+
+function parseRelativeMove(text: string): { dir: "down" | "up"; amount: number } | null {
+  const down = text.match(/(?:goes?\s+|drops?\s+|falls?\s+)?down\s+(?:by\s+)?(\d+(?:\.\d+)?)/i)
+    ?? text.match(/(?:drops?|falls?)\s+(?:by\s+)?(\d+(?:\.\d+)?)\s*(?:pts?|points?)/i);
+  if (down) return { dir: "down", amount: parseFloat(down[1]) };
+
+  const up = text.match(/(?:goes?\s+|rises?\s+|gains?\s+)?up\s+(?:by\s+)?(\d+(?:\.\d+)?)/i)
+    ?? text.match(/(?:rises?|gains?)\s+(?:by\s+)?(\d+(?:\.\d+)?)\s*(?:pts?|points?)/i);
+  if (up) return { dir: "up", amount: parseFloat(up[1]) };
+
+  return null;
 }
 
 // ─── RSS Feed (no key) ───────────────────────────────────────────────────────
@@ -582,6 +636,37 @@ Deno.serve(async (req: Request) => {
         }
 
         case "website_change": {
+          const relative = parseRelativeMove(mission.condition_text ?? "");
+          const wantsNumber = !!relative || ["below", "above", "equals"].includes(mission.condition_operator ?? "");
+
+          if (wantsNumber) {
+            const value = await fetchPageNumericValue(mission.target);
+            const previous = mission.last_value != null ? parseFloat(mission.last_value) : NaN;
+            const hasPrev = Number.isFinite(previous);
+            lastValue = String(value);
+            metadataUpdate.last_price = value;
+
+            if (relative) {
+              const delta = hasPrev ? value - previous : 0;
+              conditionMet = hasPrev && (
+                relative.dir === "down" ? previous - value >= relative.amount : value - previous >= relative.amount
+              );
+              statusMessage = !hasPrev
+                ? `Baseline ${value} — ping when it ${relative.dir} ${relative.amount}`
+                : conditionMet
+                  ? `⚠ ${value} (${delta >= 0 ? "+" : ""}${delta.toFixed(2)} from ${previous})`
+                  : `${value} — watching (${mission.condition_text})`;
+              alertMessage = `${mission.condition_text}: now ${value}`;
+            } else {
+              conditionMet = evaluateCondition(mission.condition_operator, mission.condition_value, value);
+              statusMessage = conditionMet
+                ? `⚠ ${value} meets "${mission.condition_text}"`
+                : `${value} — watching (${mission.condition_text})`;
+              alertMessage = `${mission.condition_text}: now ${value}`;
+            }
+            break;
+          }
+
           const { hash, size } = await fetchWebsiteHash(mission.target);
           lastValue = hash.substring(0, 12);
           const previousHash = (mission.metadata as { last_hash?: string })?.last_hash;
