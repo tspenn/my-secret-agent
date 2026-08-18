@@ -54,7 +54,9 @@
   font-size: 0.85em;
   font-weight: 300;
   padding: 0 2px 2px;
-  width: 180px;
+  width: min(36rem, 100%);
+  min-width: 12rem;
+  max-width: 100%;
   transition: border-color 0.2s ease;
   vertical-align: baseline;
 }
@@ -159,15 +161,17 @@
     line-height: 2.8;
   }
   .ledger-input {
-    width: 150px;
+    display: block;
+    width: 100%;
+    min-width: 0;
     font-size: 0.9em;
+    margin: 0.15em 0 0.35em;
   }
 }
 
-/* Slightly larger ledger inputs on desktop too */
 @media (min-width: 641px) {
   .ledger-input {
-    width: 220px;
+    width: min(36rem, 100%);
     font-size: 0.9em;
   }
 }
