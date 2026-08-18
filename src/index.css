@@ -180,6 +180,7 @@
   box-sizing: border-box;
 }
 .ad-column-card {
+  position: relative;
   display: block;
   width: 100%;
   max-width: 1536px;
@@ -195,6 +196,31 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+}
+.ad-column-card__caption {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1.75rem 1rem 0.85rem;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.35) 55%, transparent 100%);
+  color: #f5f0e8;
+}
+.ad-column-card__caption-title {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  font-size: 0.95rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #ffb000;
+}
+.ad-column-card__caption-sub {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: #d8d0c4;
 }
 .ad-column-card:hover {
   opacity: 0.88;

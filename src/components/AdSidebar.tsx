@@ -21,6 +21,8 @@ export default function AdSidebar({ ads, side }: AdSidebarProps) {
           destinationUrl={ad.ctaUrl}
           alt={ad.headline}
           variant="dark"
+          caption={ad.overlayTitle}
+          subhead={ad.overlayLine}
         />
       ))}
     </aside>

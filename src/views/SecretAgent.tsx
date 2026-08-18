@@ -630,6 +630,8 @@ export default function SecretAgent({
                 destinationUrl={ad.ctaUrl}
                 alt={ad.headline}
                 variant="dark"
+                caption={ad.overlayTitle}
+                subhead={ad.overlayLine}
               />
             ))}
           </div>

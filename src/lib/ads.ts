@@ -2,7 +2,8 @@
  * My Secret Agent — Ad System
  *
  * Ads show only to free-tier users (1-mission plan).
- * House ads use Skyland Suite heroes from skylandapps.com (copied to /public/ads).
+ * House ads: Secret Agent Agent/Network upsells, plus Skyland Suite.
+ * FRIDAY Canvas copy and links come from getfridayshelp.com.
  *
  * Layout (desktop ≥ 1200px, free plan): 30% ads | 40% brief | 30% ads.
  * Side cards: 1550×1550 frame, 1536×1024 creative centered inside.
@@ -10,6 +11,8 @@
  *
  * Paid plans keep the same 40% center with empty side columns.
  */
+
+import { MODE } from './appMode';
 
 export interface Ad {
   id: string;
@@ -22,6 +25,10 @@ export interface Ad {
   video?: string;
   /** Public path, absolute URL, or Supabase Storage path inside the "ads" bucket. */
   image?: string;
+  /** Optional title drawn over the bottom of the column card. */
+  overlayTitle?: string;
+  /** Optional line under the overlay title. */
+  overlayLine?: string;
   /** AdPanel content — shown when user clicks the in-feed card */
   panelTitle?: string;
   panelParagraphs?: string[];
@@ -31,6 +38,10 @@ export interface Ad {
 
 const STORAGE_BASE = 'https://psbdjnqcjpxapypcfigx.supabase.co/storage/v1/object/public/ads';
 const SKYLAND = 'https://www.skylandapps.com';
+const FRIDAY_HELP = 'https://www.getfridayshelp.com';
+
+const agentTier = MODE.tiers.find((t) => t.id === 'agent');
+const networkTier = MODE.tiers.find((t) => t.id === 'network');
 
 /** Resolve a storage path, site-relative path, or absolute URL. */
 export function adMediaUrl(path: string): string {
@@ -41,31 +52,75 @@ export function adMediaUrl(path: string): string {
 }
 
 /**
- * Master ad list — Skyland Suite house ads (not My Secret Agent).
- * Even index → left column, odd index → right column.
+ * Master ad list. Even index → left column, odd index → right column.
  */
 export const ADS: Ad[] = [
+  {
+    id: 'sa-agent',
+    label: 'My Secret Agent',
+    headline: 'Agent',
+    description: '5 active watches. Hourly checks. All watch types. $4.99/mo.',
+    ctaText: 'Upgrade to Agent',
+    ctaUrl: agentTier?.stripeLink ?? 'https://www.my-secret-agent.com',
+    image: '/ads/my-secret-agent-hero.png',
+    overlayTitle: 'Agent · $4.99/mo',
+    overlayLine: '5 active watches · hourly checks',
+    panelTitle: 'Upgrade to Agent',
+    panelParagraphs: [
+      'A serious casual user runs a handful of watches. Agent gives you five active missions, checked every hour.',
+      'Deactivate one to add another. Push notifications (Ping) included.',
+    ],
+    panelBullets: agentTier?.featureBullets,
+    panelLinks: agentTier?.stripeLinkAnnual
+      ? [{ label: 'Or pay annually — 2 months free', url: agentTier.stripeLinkAnnual }]
+      : undefined,
+  },
+  {
+    id: 'sa-network',
+    label: 'My Secret Agent',
+    headline: 'Network',
+    description: '20 active watches, The Van, and a Sunday digest. $14.99/mo.',
+    ctaText: 'Upgrade to Network',
+    ctaUrl: networkTier?.stripeLink ?? 'https://www.my-secret-agent.com',
+    image: '/ads/my-secret-agent-hero.png',
+    overlayTitle: 'Network · $14.99/mo',
+    overlayLine: '20 watches · The Van · Sunday digest',
+    panelTitle: 'Upgrade to Network',
+    panelParagraphs: [
+      'Run a desk of watches. Network unlocks 20 active missions, The Van dashboard, faster checks, and a weekly digest on Sunday nights.',
+    ],
+    panelBullets: networkTier?.featureBullets,
+    panelLinks: networkTier?.stripeLinkAnnual
+      ? [{ label: 'Or pay annually — 2 months free', url: networkTier.stripeLinkAnnual }]
+      : undefined,
+  },
   {
     id: 'friday-canvas',
     label: 'Skyland Suite',
     headline: 'FRIDAY Canvas',
     description:
-      'One workspace for your thoughts, projects, and workload — browser-native, on all your devices.',
-    ctaText: 'Try 30 days free',
-    ctaUrl: 'https://www.fridaycanvas.com/',
+      'For people with too many tabs and too many thoughts. One workspace for your thoughts, projects, and workload — with FRIDAY beside you to sort it and show you how.',
+    ctaText: 'Get Friday’s Help',
+    ctaUrl: FRIDAY_HELP,
     image: '/ads/friday-canvas-hero.png',
     panelTitle: 'FRIDAY Canvas',
     panelParagraphs: [
       'For people with too many tabs and too many thoughts.',
-      'Each project gets its own WorkZone. Notes, files, images, lists, and links stay with the work. FRIDAY sits beside you — or you can shut the office door and work without the assistant.',
-      'Try FRIDAY Canvas free for 30 days. No credit card. Cancel anytime.',
+      'FRIDAY Canvas helps you capture ideas, run projects, and keep a clear picture of what you’ve done, what’s next, and what you’d like to do — with FRIDAY beside you to sort it and show you how.',
+      'A simple personal notebook combined with a safe, friendly AI assistant — all in one calm, private space. Toggle the assistant off when you want to shut the office door.',
+      '30 days free. No credit card. Cancel anytime.',
     ],
     panelBullets: [
-      'Capture notes, voice, links, images, and files',
+      'Thoughts & ideas — capture the swirl before it disappears',
       'WorkZones so each project stays findable',
-      'A trail of what you have done, what is next, and what you would like to do',
+      'What you’ve done, what’s next, and what you’d like to do',
+      'Your data stays yours. We do not sell it or use it to train AI models',
     ],
-    panelLinks: [{ label: 'About FRIDAY Canvas', url: `${SKYLAND}/friday-canvas` }],
+    panelLinks: [
+      { label: 'Get Friday’s Help', url: FRIDAY_HELP },
+      { label: 'See inside', url: `${FRIDAY_HELP}/details/inside` },
+      { label: 'Tour', url: `${FRIDAY_HELP}/tour` },
+    ],
   },
   {
     id: 'go-news',

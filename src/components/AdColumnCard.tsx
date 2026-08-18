@@ -11,6 +11,10 @@ export interface AdColumnCardProps {
   variant?: AdColumnCardVariant;
   /** Optional looping video instead of the still image. */
   videoUrl?: string;
+  /** Optional title drawn over the bottom of the card. */
+  caption?: string;
+  /** Optional line under the caption. */
+  subhead?: string;
 }
 
 /**
@@ -26,6 +30,8 @@ export default function AdColumnCard({
   alt,
   variant = 'default',
   videoUrl,
+  caption,
+  subhead,
 }: AdColumnCardProps) {
   return (
     <div className="ad-column-slot">
@@ -47,6 +53,12 @@ export default function AdColumnCard({
           />
         ) : (
           <img src={imageUrl} alt={alt} className="ad-column-card__media" />
+        )}
+        {(caption || subhead) && (
+          <span className="ad-column-card__caption">
+            {caption && <span className="ad-column-card__caption-title">{caption}</span>}
+            {subhead && <span className="ad-column-card__caption-sub">{subhead}</span>}
+          </span>
         )}
       </a>
     </div>
