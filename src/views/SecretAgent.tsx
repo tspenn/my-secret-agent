@@ -10,7 +10,7 @@ import AuthModal from '../components/AuthModal';
 import AdCard from '../components/AdCard';
 import AdSidebar from '../components/AdSidebar';
 import type { AuthState } from '../lib/auth';
-import { MODE, atMissionLimit, resolveUserTier } from '../lib/appMode';
+import { MODE, atMissionLimit, missionLimitForTier, resolveUserTier } from '../lib/appMode';
 import { ADS, adsWithMedia } from '../lib/ads';
 
 type UserTier = 'sa_free' | 'agent' | 'network';
@@ -208,8 +208,9 @@ export default function SecretAgent({
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const user = auth.user;
-  const MISSION_LIMIT = MODE.missionLimit;
+  const MISSION_LIMIT = missionLimitForTier(userTier);
   const isFreeTier = userTier === 'sa_free';
+  const networkTier = MODE.tiers.find((t) => t.id === 'network');
   const selectedOption = WATCH_OPTIONS.find((o) => o.boardId === boardId)!;
   const watchType = selectedOption.value;
 
@@ -274,8 +275,8 @@ export default function SecretAgent({
 
   useEffect(() => {
     const activeMissions = missions.filter((m) => m.active);
-    setLimitReached(atMissionLimit(activeMissions.length));
-  }, [missions]);
+    setLimitReached(atMissionLimit(activeMissions.length, userTier));
+  }, [missions, userTier]);
 
   async function loadMissions() {
     if (!user) return;
@@ -533,14 +534,32 @@ export default function SecretAgent({
             {limitReached && user && (
               <div className="w-full bg-amber-500/5 border border-amber-500/20 rounded-sm px-4 py-3">
                 <p className="font-mono text-[12px] text-amber-500/80 tracking-wide">
-                  MISSION LIMIT REACHED ({MISSION_LIMIT}/{MISSION_LIMIT}) — Deactivate your mission or{' '}
-                  <button
-                    onClick={() => setShowAuthModal(true)}
-                    className="text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
-                  >
-                    upgrade to Agent ($4.99/mo, up to 10 missions)
-                  </button>{' '}
-                  for up to 10 missions.
+                  MISSION LIMIT REACHED ({MISSION_LIMIT}/{MISSION_LIMIT}) — Deactivate one to free a slot
+                  {userTier === 'sa_free' && (
+                    <>
+                      {' '}or{' '}
+                      <button
+                        onClick={() => setShowAuthModal(true)}
+                        className="text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
+                      >
+                        upgrade to Agent ($4.99/mo, 5 active watches)
+                      </button>
+                    </>
+                  )}
+                  {userTier === 'agent' && networkTier?.stripeLink && (
+                    <>
+                      {' '}or{' '}
+                      <a
+                        href={networkTier.stripeLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
+                      >
+                        upgrade to Network ($14.99/mo, 20 active watches)
+                      </a>
+                    </>
+                  )}
+                  .
                 </p>
               </div>
             )}

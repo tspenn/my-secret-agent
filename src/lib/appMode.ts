@@ -20,6 +20,8 @@ export interface TierConfig {
   trial?: string;
   /** Optional small note shown below trial badge */
   trialNote?: string;
+  /** Cap on currently active missions (deactivate one to free a slot). */
+  missionLimit: number;
   /** Short mission-count description, e.g. "3–4 missions" */
   missionsLabel: string;
   /** Short cadence description, e.g. "Hourly checks" */
@@ -86,13 +88,14 @@ export const MODE: ModeConfig = {
     heroCta: 'Start Watching — It\'s Free',
     heroCtaNote: 'Free forever on 1 mission. Upgrade anytime.',
     pricingHeading: 'Pick Your Clearance Level',
-    pricingSubhead: 'Start free. Upgrade when you need more eyes.',
+    pricingSubhead: 'Limits are active watches. Deactivate one to add another.',
   },
   tiers: [
     {
       id: 'sa_free',
       label: 'Free',
       price: 'Free',
+      missionLimit: 1,
       missionsLabel: '1 active mission',
       interval: 'Daily checks',
       current: true,
@@ -110,14 +113,15 @@ export const MODE: ModeConfig = {
       price: '$4.99/mo',
       priceAnnual: '$49.99/yr',
       annualSavingsNote: '2 months free',
-      missionsLabel: 'Up to 10 missions',
+      missionLimit: 5,
+      missionsLabel: '5 active missions',
       interval: 'Hourly checks',
       highlight: true,
       featureBullets: [
-        'Up to 10 active missions',
+        '5 active missions',
         'Hourly checks',
         'Push notifications (Ping)',
-        'All 10 mission types',
+        'All watch types',
       ],
       stripeLink: 'https://buy.stripe.com/6oU5kEcSB3Lw15w9dXeME0l',
       stripeLinkAnnual: 'https://buy.stripe.com/28E6oIf0Ja9U29AeyheME0m',
@@ -128,10 +132,11 @@ export const MODE: ModeConfig = {
       price: '$14.99/mo',
       priceAnnual: '$149.99/yr',
       annualSavingsNote: '2 months free',
-      missionsLabel: 'Unlimited missions',
+      missionLimit: 20,
+      missionsLabel: '20 active missions',
       interval: 'Faster checks',
       featureBullets: [
-        'Unlimited missions',
+        '20 active missions',
         'Faster checks',
         'Push notifications (Ping)',
         'Unlocks The Van dashboard',
@@ -144,13 +149,21 @@ export const MODE: ModeConfig = {
   ],
 };
 
-/** Returns true when the user has hit their tier's mission limit */
-export function atMissionLimit(activeMissionCount: number): boolean {
-  return activeMissionCount >= MODE.missionLimit;
-}
-
 /** Paid Secret Agent tiers stored on shared `profiles.tier`. */
 export type PaidUserTier = 'agent' | 'network';
+
+/** Active-mission cap for a resolved Secret Agent tier. */
+export function missionLimitForTier(tier: 'sa_free' | PaidUserTier): number {
+  return MODE.tiers.find((t) => t.id === tier)?.missionLimit ?? MODE.missionLimit;
+}
+
+/** Returns true when the user has hit their tier's active-mission limit */
+export function atMissionLimit(
+  activeMissionCount: number,
+  tier: 'sa_free' | PaidUserTier = 'sa_free',
+): boolean {
+  return activeMissionCount >= missionLimitForTier(tier);
+}
 
 /** Free-tier entitlements in this app (includes legacy / sister-app free values). */
 export function isFreeUserTier(tier: string | null | undefined): boolean {
