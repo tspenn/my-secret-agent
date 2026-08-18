@@ -94,13 +94,6 @@ const WATCH_OPTIONS: {
     group: 'more',
     placeholder: { target: 'https://blog.com/feed.xml', condition: 'a new post is published' },
   },
-  {
-    boardId: 'bank_balance',
-    value: 'bank_balance',
-    label: 'My Bank Balance',
-    group: 'more',
-    placeholder: { target: 'checking account', condition: 'balance drops below $500' },
-  },
 ];
 
 const WATCH_ICONS: Record<WatchType, typeof Eye> = {
