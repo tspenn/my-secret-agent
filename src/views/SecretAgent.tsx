@@ -7,11 +7,11 @@ import { supabase, type SecretAgentMission, type WatchType, type NewMission, typ
 import { signOut } from '../lib/auth';
 import { pushSupported, getPushPermission, enablePushNotifications, disablePushNotifications } from '../lib/pushNotifications';
 import AuthModal from '../components/AuthModal';
-import AdCard from '../components/AdCard';
+import AdColumnCard from '../components/AdColumnCard';
 import AdSidebar from '../components/AdSidebar';
 import type { AuthState } from '../lib/auth';
 import { MODE, atMissionLimit, missionLimitForTier, resolveUserTier } from '../lib/appMode';
-import { ADS } from '../lib/ads';
+import { adsForSide, adsWithMedia, adMediaUrl } from '../lib/ads';
 
 type UserTier = 'sa_free' | 'agent' | 'network';
 
@@ -364,7 +364,7 @@ export default function SecretAgent({
     <div className="min-h-screen bg-[#1a1a1a] text-[#f5f0e8] flex flex-col font-['DM_Sans',sans-serif]">
 
       <div className="sa-shell">
-        {isFreeTier && <AdSidebar ads={ADS} side="left" />}
+        {isFreeTier && <AdSidebar ads={adsForSide('left')} side="left" />}
         {!isFreeTier && <aside className="sa-ads" aria-hidden />}
 
         <div className="sa-center">
@@ -619,10 +619,19 @@ export default function SecretAgent({
           </div>
         )}
 
-        {/* In-app ad card — free tier only, shown below mission list */}
-        {isFreeTier && ADS.length > 0 && (
-          <div className="mt-8">
-            <AdCard ad={ADS[0]} />
+        {/* Stacked 3:2 house ads — tablet and phone. Hidden once side columns appear. */}
+        {isFreeTier && (
+          <div className="sa-ads-stack">
+            {adsWithMedia().map((ad) => (
+              <AdColumnCard
+                key={ad.id}
+                imageUrl={ad.image ? adMediaUrl(ad.image) : ''}
+                videoUrl={ad.video ? adMediaUrl(ad.video) : undefined}
+                destinationUrl={ad.ctaUrl}
+                alt={ad.headline}
+                variant="dark"
+              />
+            ))}
           </div>
         )}
 
@@ -688,7 +697,7 @@ export default function SecretAgent({
         </main>
         </div>{/* sa-center */}
 
-        {isFreeTier && <AdSidebar ads={ADS} side="right" />}
+        {isFreeTier && <AdSidebar ads={adsForSide('right')} side="right" />}
         {!isFreeTier && <aside className="sa-ads" aria-hidden />}
       </div>{/* sa-shell */}
 
