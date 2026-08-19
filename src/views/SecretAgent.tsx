@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Eye, Shield, Cloud, Tag, Settings, Bell, BellOff, LogOut, LogIn, TrendingUp,
-  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, Trophy, X, ExternalLink, ChevronDown,
+  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, Trophy, X, ExternalLink, ChevronDown, RefreshCw,
 } from 'lucide-react';
 import { supabase, type SecretAgentMission, type SecretAgentAlert, type WatchType, type NewMission, type ConditionOperator, parseCondition, resolveNewsKeyword } from '../lib/supabase';
 import { signOut } from '../lib/auth';
@@ -305,6 +305,7 @@ export default function SecretAgent({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [limitReached, setLimitReached] = useState(false);
   const [userTier, setUserTier] = useState<UserTier>('sa_free');
   const [showVanUpgradePrompt, setShowVanUpgradePrompt] = useState(false);
@@ -429,6 +430,16 @@ export default function SecretAgent({
       .order('triggered_at', { ascending: false })
       .limit(100);
     if (data) setFindings(data as SecretAgentAlert[]);
+  }
+
+  async function refreshIntel() {
+    if (!user || refreshing) return;
+    setRefreshing(true);
+    try {
+      await Promise.all([loadMissions(), loadFindings()]);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   async function activateMission() {
@@ -581,6 +592,15 @@ export default function SecretAgent({
             </button>
           )}
 
+          <button
+            type="button"
+            onClick={() => void refreshIntel()}
+            disabled={!user || refreshing}
+            className="w-8 h-8 flex items-center justify-center rounded-full border border-[#333] hover:border-amber-500/50 transition-colors duration-200 text-[#a0a0a0] hover:text-amber-400 disabled:opacity-40"
+            title="Refresh"
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+          </button>
           <button
             onClick={() => setShowSettingsModal(true)}
             className="w-8 h-8 flex items-center justify-center rounded-full border border-[#333] hover:border-amber-500/50 transition-colors duration-200 text-[#a0a0a0] hover:text-amber-400"
