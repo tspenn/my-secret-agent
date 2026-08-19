@@ -331,6 +331,14 @@ export default function SecretAgent({
 
     setActivating(true);
 
+    if (newNotifyPush && !pushEnabled) {
+      const success = await enablePushNotifications(user.id);
+      if (success) {
+        setPushEnabled(true);
+        setPushPermission('granted');
+      }
+    }
+
     const parsed = parseCondition(condition);
     const operator: ConditionOperator =
       parsed.operator === 'down' || parsed.operator === 'up' ? 'changes' : parsed.operator;
@@ -567,8 +575,17 @@ export default function SecretAgent({
                 Ping me
               </button>
               {newNotifyPush && !pushEnabled && pushPermission !== 'unsupported' && (
+                <button
+                  type="button"
+                  onClick={() => { void togglePush(); }}
+                  className="font-mono text-[11px] text-amber-500/90 underline underline-offset-2 hover:text-amber-400 text-left"
+                >
+                  Turn on Pings on this device — your browser will ask for permission.
+                </button>
+              )}
+              {newNotifyPush && pushPermission === 'denied' && (
                 <p className="font-mono text-[11px] text-amber-500/70">
-                  Turn on notifications in Settings — and on your device/devices — to receive Pings.
+                  Notifications are blocked. Allow them for this site in the browser, then turn Pings on.
                 </p>
               )}
             </div>

@@ -67,6 +67,16 @@ export async function enablePushNotifications(userId: string): Promise<boolean> 
       return false;
     }
 
+    try {
+      await registration.showNotification('My Secret Agent', {
+        body: 'Pings are on for this device.',
+        icon: '/icon-192.png',
+        tag: 'secret-agent-ping-test',
+      });
+    } catch {
+      // Subscription saved; a local confirmation is optional.
+    }
+
     return true;
   } catch (err) {
     console.error('Push notification setup failed:', err);
