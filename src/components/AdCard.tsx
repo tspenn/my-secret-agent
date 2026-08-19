@@ -1,17 +1,15 @@
 import { useState, useRef } from 'react';
-import { type Ad, adMediaUrl, feedStartsWide } from '../lib/ads';
+import { type Ad, AD_DISCLOSURE_SUFFIX } from '../lib/ads';
 import AdPanel from './AdPanel';
 
 interface AdCardProps {
   ad: Ad;
 }
 
-/** In-feed house unit. 4:5 by default; 16:9 if there is a video or the still is wider than tall. */
+/** Feed house unit. Stills are 1536×1024 contain. Video is 16:9. */
 export default function AdCard({ ad }: AdCardProps) {
   const [panelOpen, setPanelOpen] = useState(false);
-  const [wide, setWide] = useState(feedStartsWide(ad));
   const videoRef = useRef<HTMLVideoElement>(null);
-  const still = ad.image ?? ad.imagePortrait ?? ad.imageWide;
 
   return (
     <>
@@ -19,37 +17,34 @@ export default function AdCard({ ad }: AdCardProps) {
         type="button"
         onClick={() => setPanelOpen(true)}
         className="ad-feed-card group"
-        aria-label={ad.headline || ad.panelTitle || ad.label}
+        aria-label={`${ad.headline}${AD_DISCLOSURE_SUFFIX}`}
       >
-        <div className={`ad-feed-card__frame ${wide ? 'ad-feed-card__frame--wide' : 'ad-feed-card__frame--portrait'}`}>
+        <div className={ad.video ? 'ad-hero ad-hero--video' : 'ad-hero'}>
           {ad.video ? (
             <video
               ref={videoRef}
-              src={adMediaUrl(ad.video)}
-              poster={still ? adMediaUrl(still) : undefined}
-              className="ad-feed-card__media"
+              src={ad.video}
+              poster={ad.image}
+              className="ad-hero__video"
               autoPlay
               muted
               loop
               playsInline
             />
-          ) : still ? (
-            <img
-              src={adMediaUrl(still)}
-              alt={ad.headline}
-              className="ad-feed-card__media"
-              onLoad={(e) => {
-                const img = e.currentTarget;
-                setWide(img.naturalWidth > img.naturalHeight);
-              }}
-            />
-          ) : null}
+          ) : (
+            <img src={ad.image} alt="" className="ad-hero__img" />
+          )}
         </div>
-        <div className="ad-feed-card__copy">
-          <p className="ad-feed-card__title">{ad.headline || ad.panelTitle}</p>
-          {ad.description && <p className="ad-feed-card__desc">{ad.description}</p>}
+        <div className="ad-feed-card__bar">
+          <span className="ad-feed-card__sponsored">Sponsored</span>
           <span className="ad-feed-card__cta">{ad.ctaText} →</span>
         </div>
+        {ad.headline && (
+          <p className="ad-feed-card__title">
+            {ad.headline}
+            <span className="ad-feed-card__disclosure">{AD_DISCLOSURE_SUFFIX}</span>
+          </p>
+        )}
       </button>
       {panelOpen && <AdPanel ad={ad} onClose={() => setPanelOpen(false)} />}
     </>

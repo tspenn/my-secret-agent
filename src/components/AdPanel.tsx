@@ -1,6 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { X, ExternalLink } from 'lucide-react';
-import { type Ad, adMediaUrl } from '../lib/ads';
+import { useEffect, useRef, useState } from 'react';
+import { X, ExternalLink, Volume2, VolumeX } from 'lucide-react';
+import { type Ad } from '../lib/ads';
 
 interface AdPanelProps {
   ad: Ad;
@@ -9,33 +9,40 @@ interface AdPanelProps {
 
 export default function AdPanel({ ad, onClose }: AdPanelProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [muted, setMuted] = useState(false);
 
   useEffect(() => {
     document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = ''; };
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, []);
 
   useEffect(() => {
-    if (videoRef.current) {
-      videoRef.current.muted = false;
-      videoRef.current.play().catch(() => {});
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
     }
-  }, []);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    el.muted = muted;
+    el.play().catch(() => {});
+  }, [muted]);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      {/* Panel — slides in from right */}
       <div
         className="relative flex flex-col bg-[#1a1a1a] border-l border-[#2e2e2e] shadow-2xl overflow-y-auto animate-slide-in-right"
         style={{ width: 'min(92vw, 680px)' }}
+        role="dialog"
+        aria-label={ad.panelTitle ?? ad.headline}
       >
-        {/* Close */}
         <button
           onClick={onClose}
           className="absolute top-4 right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 text-white/60 hover:text-white hover:bg-black/80 transition-colors"
@@ -44,33 +51,35 @@ export default function AdPanel({ ad, onClose }: AdPanelProps) {
           <X size={15} />
         </button>
 
-        {/* Media */}
         {ad.video ? (
-          <video
-            ref={videoRef}
-            src={adMediaUrl(ad.video)}
-            poster={ad.image ? adMediaUrl(ad.image) : undefined}
-            className="w-full aspect-video object-cover"
-            loop
-            playsInline
-            controls
-          />
-        ) : (ad.image ?? ad.imageWide ?? ad.imagePortrait) ? (
-          <img
-            src={adMediaUrl((ad.image ?? ad.imageWide ?? ad.imagePortrait)!)}
-            alt={ad.headline}
-            className="w-full aspect-video object-cover"
-          />
+          <div className="relative ad-hero ad-hero--video">
+            <video
+              ref={videoRef}
+              src={ad.video}
+              poster={ad.image}
+              className="ad-hero__video"
+              loop
+              playsInline
+              autoPlay
+            />
+            <button
+              type="button"
+              onClick={() => setMuted((v) => !v)}
+              className="absolute bottom-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/60 text-white/80 hover:text-white"
+              aria-label={muted ? 'Unmute' : 'Mute'}
+            >
+              {muted ? <VolumeX size={14} /> : <Volume2 size={14} />}
+            </button>
+          </div>
         ) : (
-          <div className="w-full aspect-video bg-[#232323] flex items-center justify-center">
-            <span className="font-mono text-xs text-[#555] tracking-widest uppercase">Sponsored</span>
+          <div className="ad-hero">
+            <img src={ad.image} alt="" className="ad-hero__img" />
           </div>
         )}
 
-        {/* Content */}
         <div className="flex-1 px-8 py-8">
           <p className="font-mono text-[10px] text-amber-500/50 tracking-[0.3em] uppercase mb-3">
-            {ad.label ?? 'Sponsored'}
+            Sponsored · {ad.label}
           </p>
 
           <h2 className="text-2xl font-semibold text-[#f5f0e8] mb-4 leading-snug">
@@ -85,8 +94,8 @@ export default function AdPanel({ ad, onClose }: AdPanelProps) {
 
           {ad.panelBullets && ad.panelBullets.length > 0 && (
             <ul className="mb-6 space-y-2">
-              {ad.panelBullets.map((b, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-[#c8c0b0]">
+              {ad.panelBullets.map((b) => (
+                <li key={b} className="flex items-start gap-2 text-sm text-[#c8c0b0]">
                   <span className="text-amber-500 mt-0.5 flex-shrink-0">✓</span>
                   {b}
                 </li>
@@ -94,23 +103,21 @@ export default function AdPanel({ ad, onClose }: AdPanelProps) {
             </ul>
           )}
 
-          {/* Primary CTA */}
           <a
             href={ad.ctaUrl}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 font-mono text-[12px] uppercase tracking-widest bg-amber-500 hover:bg-amber-400 text-[#1a1a1a] font-semibold px-5 py-2.5 rounded-sm transition-colors duration-150"
           >
-            {ad.ctaText ?? 'See More'}
+            {ad.ctaText}
             <ExternalLink size={12} />
           </a>
 
-          {/* Secondary links */}
           {ad.panelLinks && ad.panelLinks.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-4">
-              {ad.panelLinks.map((link, i) => (
+              {ad.panelLinks.map((link) => (
                 <a
-                  key={i}
+                  key={link.url}
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"

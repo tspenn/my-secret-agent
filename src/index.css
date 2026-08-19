@@ -134,22 +134,6 @@
   display: flex;
   flex-direction: column;
 }
-.sa-ads-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin-top: 2rem;
-}
-@media (max-width: 767px) {
-  .sa-ads-stack {
-    width: 100vw;
-    position: relative;
-    left: 50%;
-    right: 50%;
-    margin-left: -50vw;
-    margin-right: -50vw;
-  }
-}
 @media (min-width: 1200px) {
   .sa-shell {
     grid-template-columns: 30% 40% 30%;
@@ -158,183 +142,80 @@
   .sa-ads {
     display: flex;
     flex-direction: column;
-    gap: 0;
-    padding: 0;
+    gap: 1rem;
+    padding: 0.75rem 0.5rem;
     min-width: 0;
     position: sticky;
     top: 0;
     max-height: 100vh;
     overflow-y: auto;
   }
-  .sa-ads-stack {
-    display: none;
-  }
 }
 
-.ad-sidebar-spacer {
+.ad-hero {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  aspect-ratio: 1536 / 1024;
+  background: #1c1c1c;
+  overflow: hidden;
+}
+.ad-hero--video {
+  aspect-ratio: 16 / 9;
+}
+.ad-hero__img,
+.ad-hero__video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
 }
 
+.ad-feed-card,
 .sidebar-ad {
   display: block;
   width: 100%;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  text-align: left;
-}
-.sidebar-ad__frame {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-  overflow: hidden;
-  background: #232323;
-}
-.sidebar-ad__media {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-
-.ad-feed-card {
-  display: block;
-  width: 100%;
   text-align: left;
   background: #1e1e1e;
   border: 1px solid #2e2e2e;
   padding: 0;
   cursor: pointer;
 }
-.ad-feed-card:hover {
+.ad-feed-card:hover,
+.sidebar-ad:hover {
   border-color: #444;
 }
-.ad-feed-card__frame {
-  width: 100%;
-  overflow: hidden;
-  background: #232323;
+.ad-feed-card__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.85rem;
+  border-top: 1px solid #2e2e2e;
 }
-.ad-feed-card__frame--portrait {
-  aspect-ratio: 4 / 5;
-}
-.ad-feed-card__frame--wide {
-  aspect-ratio: 16 / 9;
-}
-.ad-feed-card__media {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-.ad-feed-card__copy {
-  padding: 0.85rem 1rem 1rem;
-}
-.ad-feed-card__title {
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.95rem;
-  color: #f5f0e8;
-}
-.ad-feed-card__desc {
-  margin-top: 0.25rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-  color: #888;
-  line-height: 1.45;
-}
-.ad-feed-card__cta {
-  display: inline-block;
-  margin-top: 0.6rem;
+.ad-feed-card__sponsored {
   font-family: 'JetBrains Mono', monospace;
   font-size: 0.65rem;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: rgba(255, 176, 0, 0.8);
+  color: #777;
 }
-
-.product-ad {
-  display: block;
-  text-decoration: none;
-  background: #1e1e1e;
-  border: 1px solid #2e2e2e;
-  overflow: hidden;
-}
-.product-ad:hover {
-  border-color: #444;
-}
-.product-ad__frame {
-  width: 100%;
-  overflow: hidden;
-  background: #232323;
-}
-.product-ad--portrait .product-ad__frame { aspect-ratio: 4 / 5; }
-.product-ad--landscape .product-ad__frame { aspect-ratio: 16 / 9; }
-.product-ad--square .product-ad__frame { aspect-ratio: 1 / 1; }
-.product-ad--banner {
-  max-width: 728px;
-  margin-inline: auto;
-  border: 0;
-  background: transparent;
-}
-.product-ad--banner .product-ad__frame {
-  aspect-ratio: 728 / 90;
-}
-.product-ad-banner-wrap {
-  margin-bottom: 1.5rem;
-}
-.product-ad__media {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-}
-.product-ad__copy {
-  padding: 0.75rem 0.9rem 0.9rem;
-}
-.product-ad__brand {
+.ad-feed-card__cta {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 0.6rem;
-  letter-spacing: 0.16em;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: #888;
+  color: rgba(255, 176, 0, 0.85);
 }
-.product-ad__title {
-  margin-top: 0.2rem;
+.ad-feed-card__title {
+  padding: 0 0.85rem 0.75rem;
+  font-family: 'DM Sans', sans-serif;
   font-size: 0.9rem;
   color: #f5f0e8;
+  line-height: 1.35;
 }
-.product-ad__meta {
-  margin-top: 0.25rem;
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-  color: #ffb000;
-}
-
-.ad-column-card__caption {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  padding: 1.75rem 1rem 0.85rem;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.35) 55%, transparent 100%);
-  color: #f5f0e8;
-}
-.ad-column-card__caption-title {
-  font-family: 'DM Sans', sans-serif;
-  font-weight: 600;
-  font-size: 0.95rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #ffb000;
-}
-.ad-column-card__caption-sub {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.04em;
-  color: #d8d0c4;
+.ad-feed-card__disclosure {
+  color: #777;
+  font-weight: 400;
 }
 
 /* ─── Ad panel slide-in ──────────────────────────── */
