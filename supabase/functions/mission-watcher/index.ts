@@ -776,56 +776,63 @@ Deno.serve(async (req: Request) => {
       mission.last_alert_sent_at &&
       new Date(mission.last_alert_sent_at) > alertCooldown;
 
-    if (conditionMet && !alreadyAlerted && !checkError) {
-      // Web push only — requires an active subscription on the user's device(s)
-      if (mission.notify_push !== false) {
-        await sendPushToUser(
-          mission.user_id,
-          `🔔 ${mission.codename}`,
-          alertMessage,
-          `/?mission=${mission.id}`
-        );
-      }
-
-      if (mission.webhook_url) {
-        try {
-          await fetch(mission.webhook_url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              mission_id: mission.id,
-              codename: mission.codename,
-              watch_type: mission.watch_type,
-              target: mission.target,
-              alert_message: alertMessage,
-              last_value: lastValue,
-              condition_operator: mission.condition_operator,
-              condition_value: mission.condition_value,
-              triggered_at: now.toISOString(),
-            }),
-          });
-        } catch (webhookErr) {
-          console.error("Webhook delivery failed:", mission.webhook_url, (webhookErr as Error).message);
+    if (conditionMet && !checkError) {
+      if (!alreadyAlerted) {
+        // Web push only — requires an active subscription on the user's device(s)
+        if (mission.notify_push !== false) {
+          await sendPushToUser(
+            mission.user_id,
+            `🔔 ${mission.codename}`,
+            alertMessage,
+            `/?mission=${mission.id}`
+          );
         }
+
+        if (mission.webhook_url) {
+          try {
+            await fetch(mission.webhook_url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                mission_id: mission.id,
+                codename: mission.codename,
+                watch_type: mission.watch_type,
+                target: mission.target,
+                alert_message: alertMessage,
+                last_value: lastValue,
+                condition_operator: mission.condition_operator,
+                condition_value: mission.condition_value,
+                triggered_at: now.toISOString(),
+              }),
+            });
+          } catch (webhookErr) {
+            console.error("Webhook delivery failed:", mission.webhook_url, (webhookErr as Error).message);
+          }
+        }
+
+        const { error: inboxErr } = await supabase.from("skyland_app_inbox").insert({
+          user_id: mission.user_id,
+          app_id: "secret-agent",
+          title: mission.codename,
+          body: alertMessage,
+          mission_id: mission.id,
+        });
+        if (inboxErr) console.warn("Inbox insert skipped:", inboxErr.message);
       }
 
-      // Write to app inbox (shared cross-app notification table)
-      const { error: inboxErr } = await supabase.from("skyland_app_inbox").insert({
-        user_id: mission.user_id,
-        app_id: "secret-agent",
-        title: mission.codename,
-        body: alertMessage,
-        mission_id: mission.id,
-      });
-      if (inboxErr) console.warn("Inbox insert skipped:", inboxErr.message);
-
-      // Log the alert
       await supabase.from("secret_agent_alerts").insert({
         mission_id: mission.id,
         user_id: mission.user_id,
         alert_type: "condition_met",
         message: alertMessage,
-        payload: { last_value: lastValue, condition_operator: mission.condition_operator, condition_value: mission.condition_value },
+        payload: {
+          last_value: lastValue,
+          condition_operator: mission.condition_operator,
+          condition_value: mission.condition_value,
+          url: metadataUpdate.last_url ?? metadataUpdate.last_link ?? null,
+          title: metadataUpdate.last_title ?? null,
+          status_message: statusMessage,
+        },
       });
     } else if (!checkError) {
       // Log a check_ok event (throttled — only if last alert log was >6h ago)

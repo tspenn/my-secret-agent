@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Eye, Shield, Cloud, Tag, Settings, Bell, BellOff, LogOut, LogIn, TrendingUp,
-  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, Trophy, X, ExternalLink,
+  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, Trophy, X, ExternalLink, ChevronDown,
 } from 'lucide-react';
-import { supabase, type SecretAgentMission, type WatchType, type NewMission, type ConditionOperator, parseCondition, resolveNewsKeyword } from '../lib/supabase';
+import { supabase, type SecretAgentMission, type SecretAgentAlert, type WatchType, type NewMission, type ConditionOperator, parseCondition, resolveNewsKeyword } from '../lib/supabase';
 import { signOut } from '../lib/auth';
 import { pushSupported, pushBlockMessage, getPushPermission, enablePushNotifications, disablePushNotifications, restoreAndSyncPush } from '../lib/pushNotifications';
 import AuthModal from '../components/AuthModal';
@@ -156,13 +156,27 @@ function missionSourceUrl(mission: SecretAgentMission): string | null {
   return null;
 }
 
+function findingUrl(alert: SecretAgentAlert): string | null {
+  const payload = alert.payload ?? {};
+  for (const key of ['url', 'last_url', 'last_link'] as const) {
+    const value = payload[key];
+    if (typeof value === 'string' && /^https?:\/\//i.test(value.trim())) return value.trim();
+  }
+  return null;
+}
+
 function MissionCard({
   mission,
+  findings,
   onDeactivate,
+  defaultOpen = false,
 }: {
   mission: SecretAgentMission;
+  findings: SecretAgentAlert[];
   onDeactivate: (id: string) => void;
+  defaultOpen?: boolean;
 }) {
+  const [open, setOpen] = useState(defaultOpen);
   const isSports = (mission.metadata as { category?: string } | null)?.category === 'sports';
   const Icon = isSports ? Trophy : (WATCH_ICONS[mission.watch_type as WatchType] ?? Eye);
   const isAlert = mission.status_message.startsWith('⚠') || mission.status_message.startsWith('✓');
@@ -170,42 +184,85 @@ function MissionCard({
   const statusClass = isAlert ? 'text-amber-400/90' : 'text-green-400/80';
 
   return (
-    <div className="mission-card flex items-start gap-4 bg-[#232323] border border-[#333] rounded-sm p-5 group">
-      <div className="mt-0.5 w-8 h-8 flex items-center justify-center rounded-sm bg-[#1a1a1a] border border-[#333] flex-shrink-0">
-        <Icon size={15} className={isAlert ? 'text-amber-400 animate-pulse' : 'text-amber-400'} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-[#f5f0e8] font-semibold text-sm tracking-wide mb-1 truncate">{mission.codename}</p>
-        {sourceUrl ? (
-          <a
-            href={sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={`font-mono text-[13px] leading-relaxed inline-flex items-start gap-1.5 underline underline-offset-2 decoration-amber-500/40 hover:decoration-amber-400 ${statusClass}`}
+    <div className="mission-card bg-[#232323] border border-[#333] rounded-sm p-5 group">
+      <div className="flex items-start gap-4">
+        <div className="mt-0.5 w-8 h-8 flex items-center justify-center rounded-sm bg-[#1a1a1a] border border-[#333] flex-shrink-0">
+          <Icon size={15} className={isAlert ? 'text-amber-400 animate-pulse' : 'text-amber-400'} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-[#f5f0e8] font-semibold text-sm tracking-wide mb-1 truncate">{mission.codename}</p>
+          {sourceUrl ? (
+            <a
+              href={sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`font-mono text-[13px] leading-relaxed inline-flex items-start gap-1.5 underline underline-offset-2 decoration-amber-500/40 hover:decoration-amber-400 ${statusClass}`}
+            >
+              <span>{mission.status_message}</span>
+              <ExternalLink size={12} className="flex-shrink-0 mt-0.5 opacity-80" />
+            </a>
+          ) : (
+            <p className={`font-mono text-[13px] leading-relaxed ${statusClass}`}>
+              {mission.status_message}
+            </p>
+          )}
+          <p className="font-mono text-[12px] text-[#a0a0a0] mt-1 truncate">
+            TARGET: {mission.target || '—'} · TRIGGER: {mission.condition_text || '—'}
+          </p>
+          {mission.last_checked_at && (
+            <p className="font-mono text-[13px] text-[#8a8a8a] mt-0.5">
+              Last check: {new Date(mission.last_checked_at).toLocaleString()}
+            </p>
+          )}
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="mt-3 flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-widest text-amber-500/80 hover:text-amber-400"
           >
-            <span>{mission.status_message}</span>
-            <ExternalLink size={12} className="flex-shrink-0 mt-0.5 opacity-80" />
-          </a>
-        ) : (
-          <p className={`font-mono text-[13px] leading-relaxed ${statusClass}`}>
-            {mission.status_message}
-          </p>
-        )}
-        <p className="font-mono text-[12px] text-[#a0a0a0] mt-1 truncate">
-          TARGET: {mission.target || '—'} · TRIGGER: {mission.condition_text || '—'}
-        </p>
-        {mission.last_checked_at && (
-          <p className="font-mono text-[13px] text-[#8a8a8a] mt-0.5">
-            Last check: {new Date(mission.last_checked_at).toLocaleString()}
-          </p>
-        )}
+            <ChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+            Record · {findings.length} finding{findings.length === 1 ? '' : 's'}
+          </button>
+        </div>
+        <button
+          onClick={() => onDeactivate(mission.id)}
+          className="flex-shrink-0 text-[12px] font-mono uppercase tracking-widest text-red-700 hover:text-red-400 transition-colors duration-150 opacity-0 group-hover:opacity-100 pt-0.5"
+        >
+          Deactivate
+        </button>
       </div>
-      <button
-        onClick={() => onDeactivate(mission.id)}
-        className="flex-shrink-0 text-[12px] font-mono uppercase tracking-widest text-red-700 hover:text-red-400 transition-colors duration-150 opacity-0 group-hover:opacity-100 pt-0.5"
-      >
-        Deactivate
-      </button>
+
+      {open && (
+        <div className="mt-4 ml-12 border-t border-[#333] pt-3 flex flex-col gap-2">
+          {findings.length === 0 ? (
+            <p className="font-mono text-[12px] text-[#777]">No findings logged yet. Hits will collect here as the watch sweeps.</p>
+          ) : (
+            findings.map((finding) => {
+              const url = findingUrl(finding);
+              const when = new Date(finding.triggered_at).toLocaleString();
+              return (
+                <div key={finding.id} className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    {url ? (
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-[12px] text-amber-400/90 underline underline-offset-2 inline-flex items-start gap-1"
+                      >
+                        <span>{finding.message}</span>
+                        <ExternalLink size={10} className="flex-shrink-0 mt-0.5" />
+                      </a>
+                    ) : (
+                      <p className="font-mono text-[12px] text-[#c8c0b0]">{finding.message}</p>
+                    )}
+                    <p className="font-mono text-[11px] text-[#777] mt-0.5">{when}</p>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -223,6 +280,7 @@ export default function SecretAgent({
   const [target, setTarget] = useState('');
   const [condition, setCondition] = useState('');
   const [missions, setMissions] = useState<SecretAgentMission[]>([]);
+  const [findings, setFindings] = useState<SecretAgentAlert[]>([]);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushPermission, setPushPermission] = useState<string>('default');
   const [pushError, setPushError] = useState<string | null>(null);
@@ -248,9 +306,11 @@ export default function SecretAgent({
   useEffect(() => {
     if (user) {
       loadMissions();
+      loadFindings();
       fetchUserTier();
     } else {
       setMissions([]);
+      setFindings([]);
       setUserTier('sa_free');
     }
   }, [user]);
@@ -319,6 +379,11 @@ export default function SecretAgent({
   }, [missions, userTier]);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('settings') === '1') setShowSettingsModal(true);
+  }, []);
+
+  useEffect(() => {
     function onInstallPrompt(event: Event) {
       event.preventDefault();
       setInstallPrompt(event as Event & { prompt: () => Promise<void> });
@@ -336,6 +401,18 @@ export default function SecretAgent({
       .eq('active', true)
       .order('created_at', { ascending: false });
     if (data) setMissions(data as SecretAgentMission[]);
+  }
+
+  async function loadFindings() {
+    if (!user) return;
+    const { data } = await supabase
+      .from('secret_agent_alerts')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('alert_type', 'condition_met')
+      .order('triggered_at', { ascending: false })
+      .limit(100);
+    if (data) setFindings(data as SecretAgentAlert[]);
   }
 
   async function activateMission() {
@@ -694,7 +771,13 @@ export default function SecretAgent({
             </div>
             <div className="flex flex-col gap-3">
               {missions.map((m) => (
-                <MissionCard key={m.id} mission={m} onDeactivate={deactivateMission} />
+                <MissionCard
+                  key={m.id}
+                  mission={m}
+                  findings={findings.filter((f) => f.mission_id === m.id)}
+                  onDeactivate={deactivateMission}
+                  defaultOpen={new URLSearchParams(window.location.search).get('mission') === m.id}
+                />
               ))}
             </div>
           </section>
