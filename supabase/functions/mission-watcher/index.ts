@@ -461,59 +461,87 @@ function evaluateCondition(
 // ─── Push notification ────────────────────────────────────────────────────────
 
 async function sendPushToUser(userId: string, title: string, body: string, url = "/") {
-  const vapidPublicKey =
-    Deno.env.get("WEB_PUSH_PUBLIC_KEY_MY_SECRET_AGENT") ?? Deno.env.get("WEB_PUSH_PUBLIC_KEY");
-  const vapidPrivateKey =
-    Deno.env.get("WEB_PUSH_PRIVATE_KEY_MY_SECRET_AGENT") ?? Deno.env.get("WEB_PUSH_PRIVATE_KEY");
+  const sharedPublic = Deno.env.get("WEB_PUSH_PUBLIC_KEY") ?? "";
+  const sharedPrivate = Deno.env.get("WEB_PUSH_PRIVATE_KEY") ?? "";
+  const msaPublic = Deno.env.get("WEB_PUSH_PUBLIC_KEY_MY_SECRET_AGENT") ?? sharedPublic;
+  const msaPrivate = Deno.env.get("WEB_PUSH_PRIVATE_KEY_MY_SECRET_AGENT") ?? sharedPrivate;
   const vapidSubject =
     Deno.env.get("WEB_PUSH_CONTACT_EMAIL_MY_SECRET_AGENT") ??
     Deno.env.get("WEB_PUSH_CONTACT-EMAIL") ??
     "mailto:admin@example.com";
-
-  if (!vapidPublicKey || !vapidPrivateKey) {
-    console.warn("VAPID keys not configured (WEB_PUSH_PUBLIC_KEY_MY_SECRET_AGENT) — skipping web push");
-    return;
-  }
-
-  webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 
   const { data: allSubs, error } = await supabase
     .from("user_push_subscriptions")
     .select("id, endpoint, p256dh, auth, app_id")
     .eq("user_id", userId);
 
-  const subs = (allSubs ?? []).filter(
-    (sub) => !sub.app_id || sub.app_id === "secret-agent"
-  );
+  if (error || !allSubs?.length) return;
 
-  if (error || !subs?.length) return;
+  type PushSub = { id: string; endpoint: string; p256dh: string; auth: string; app_id: string | null };
+  const subs = allSubs as PushSub[];
+  const saSubs = subs.filter((sub) => !sub.app_id || sub.app_id === "secret-agent" || sub.app_id === "friday");
+  const giaSubs = subs.filter((sub) => sub.app_id === "gia");
 
-  const payload = JSON.stringify({
+  async function sendWith(
+    batch: PushSub[],
+    publicKey: string,
+    privateKey: string,
+    payload: string,
+  ) {
+    if (!batch.length || !publicKey || !privateKey) return;
+    webpush.setVapidDetails(vapidSubject, publicKey, privateKey);
+    await Promise.allSettled(
+      batch.map(async (sub) => {
+        try {
+          await webpush.sendNotification(
+            { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+            payload,
+          );
+        } catch (err: unknown) {
+          const status = (err as { statusCode?: number }).statusCode;
+          if (status === 410 || status === 404) {
+            await supabase.from("user_push_subscriptions").delete().eq("id", sub.id);
+          }
+          console.error("Push send error:", status, sub.id, sub.app_id);
+        }
+      }),
+    );
+  }
+
+  const saPayload = JSON.stringify({
     title,
     body,
     url,
     icon: "/icon-192.png",
     badge: "/badge-72.png",
-    tag: "secret-agent-alert",
+    tag: `secret-agent-alert-${Date.now()}`,
+  });
+  const giaPayload = JSON.stringify({
+    title,
+    body,
+    url,
+    icon: "/icon-192.png",
+    badge: "/badge-72.png",
+    tag: `gia-alert-${Date.now()}`,
   });
 
-  await Promise.allSettled(
-    subs.map(async (sub) => {
-      try {
-        await webpush.sendNotification(
-          { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-          payload
-        );
-      } catch (err: unknown) {
-        const status = (err as { statusCode?: number }).statusCode;
-        if (status === 410 || status === 404) {
-          // Subscription expired — clean it up
-          await supabase.from("user_push_subscriptions").delete().eq("id", sub.id);
-        }
-        console.error("Push send error:", status, sub.id);
-      }
-    })
-  );
+  if (saSubs.length) {
+    if (msaPublic && msaPrivate) {
+      await sendWith(saSubs, msaPublic, msaPrivate, saPayload);
+    } else {
+      console.warn("VAPID keys not configured for Secret Agent — skipping web push");
+    }
+  }
+
+  if (giaSubs.length) {
+    const giaPublic = sharedPublic || msaPublic;
+    const giaPrivate = sharedPrivate || msaPrivate;
+    if (giaPublic && giaPrivate) {
+      await sendWith(giaSubs, giaPublic, giaPrivate, giaPayload);
+    } else {
+      console.warn("VAPID keys not configured for GIA — skipping web push");
+    }
+  }
 }
 
 // ─── Main handler ─────────────────────────────────────────────────────────────
