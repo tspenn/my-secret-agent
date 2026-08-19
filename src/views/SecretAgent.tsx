@@ -203,7 +203,7 @@ export default function SecretAgent({
   const [limitReached, setLimitReached] = useState(false);
   const [userTier, setUserTier] = useState<UserTier>('sa_free');
   const [showVanUpgradePrompt, setShowVanUpgradePrompt] = useState(false);
-  const [newNotifyPush, setNewNotifyPush] = useState(true);
+  const [adPanel, setAdPanel] = useState<{ side: 'left' | 'right'; adId: string } | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const user = auth.user;
@@ -362,8 +362,23 @@ export default function SecretAgent({
   return (
     <div className="min-h-screen bg-[#1a1a1a] text-[#f5f0e8] flex flex-col font-['DM_Sans',sans-serif]">
 
+      {adPanel && (
+        <div
+          className="sa-ads-backdrop"
+          onClick={() => setAdPanel(null)}
+          aria-hidden
+        />
+      )}
       <div className="sa-shell">
-        {isFreeTier && <AdSidebar ads={adsForSide('left')} side="left" />}
+        {isFreeTier && (
+          <AdSidebar
+            ads={adsForSide('left')}
+            side="left"
+            openId={adPanel?.side === 'left' ? adPanel.adId : null}
+            onOpen={(adId) => setAdPanel({ side: 'left', adId })}
+            onClose={() => setAdPanel(null)}
+          />
+        )}
         {!isFreeTier && <aside className="sa-ads" aria-hidden />}
 
         <div className="sa-center">
@@ -679,7 +694,15 @@ export default function SecretAgent({
         </main>
         </div>{/* sa-center */}
 
-        {isFreeTier && <AdSidebar ads={adsForSide('right')} side="right" />}
+        {isFreeTier && (
+          <AdSidebar
+            ads={adsForSide('right')}
+            side="right"
+            openId={adPanel?.side === 'right' ? adPanel.adId : null}
+            onOpen={(adId) => setAdPanel({ side: 'right', adId })}
+            onClose={() => setAdPanel(null)}
+          />
+        )}
         {!isFreeTier && <aside className="sa-ads" aria-hidden />}
       </div>{/* sa-shell */}
 

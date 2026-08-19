@@ -149,7 +149,129 @@
     top: 0;
     max-height: 100vh;
     overflow-y: auto;
+    z-index: 1;
   }
+  .sa-ads--panel {
+    z-index: 50;
+    background: #141414;
+    gap: 0;
+    padding: 0;
+    border-inline: 1px solid #2e2e2e;
+  }
+}
+
+.sa-ads-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.78);
+}
+
+.sa-ads-panel-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0.85rem;
+  background: #141414;
+  border-bottom: 1px solid #2e2e2e;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #888;
+}
+.sa-ads-panel-bar button {
+  color: #888;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 0.2rem;
+}
+.sa-ads-panel-bar button:hover {
+  color: #ffb000;
+}
+
+.ad-detail {
+  border-bottom: 1px solid #2e2e2e;
+}
+.ad-detail__body {
+  padding: 1rem 0.9rem 1.4rem;
+}
+.ad-detail__kicker {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.62rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(255, 176, 0, 0.55);
+  margin-bottom: 0.55rem;
+}
+.ad-detail__title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #f5f0e8;
+  line-height: 1.3;
+  margin-bottom: 0.75rem;
+}
+.ad-detail__p {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  color: #a0a0a0;
+  margin-bottom: 0.7rem;
+}
+.ad-detail__list {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+.ad-detail__list li {
+  position: relative;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #c8c0b0;
+  margin-bottom: 0.4rem;
+}
+.ad-detail__list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #ffb000;
+}
+.ad-detail__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  background: #ffb000;
+  color: #1a1a1a;
+  font-weight: 600;
+  padding: 0.55rem 0.9rem;
+  text-decoration: none;
+}
+.ad-detail__cta:hover {
+  background: #ffc333;
+}
+.ad-detail__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin-top: 0.85rem;
+}
+.ad-detail__links a {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  color: #8a8a8a;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.ad-detail__links a:hover {
+  color: #ffb000;
 }
 
 .ad-hero {
