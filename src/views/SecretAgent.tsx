@@ -204,6 +204,7 @@ export default function SecretAgent({
   const [userTier, setUserTier] = useState<UserTier>('sa_free');
   const [showVanUpgradePrompt, setShowVanUpgradePrompt] = useState(false);
   const [adPanel, setAdPanel] = useState<{ side: 'left' | 'right'; adId: string } | null>(null);
+  const [newNotifyPush, setNewNotifyPush] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const user = auth.user;
