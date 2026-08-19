@@ -11,6 +11,7 @@ import AdSidebar from '../components/AdSidebar';
 import type { AuthState } from '../lib/auth';
 import { MODE, atMissionLimit, missionLimitForTier, resolveUserTier } from '../lib/appMode';
 import { adsForSide } from '../lib/ads';
+import { setAppBadge, alertBadgeCount } from '../lib/appBadge';
 
 type UserTier = 'sa_free' | 'agent' | 'network';
 
@@ -225,6 +226,7 @@ export default function SecretAgent({
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushPermission, setPushPermission] = useState<string>('default');
   const [pushError, setPushError] = useState<string | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<{ prompt: () => Promise<void> } | null>(null);
   const [activating, setActivating] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -306,9 +308,24 @@ export default function SecretAgent({
   }, []);
 
   useEffect(() => {
+    const count = alertBadgeCount(missions);
+    setAppBadge(count);
+    document.title = count > 0 ? `(${count}) ${MODE.documentTitle}` : MODE.documentTitle;
+  }, [missions]);
+
+  useEffect(() => {
     const activeMissions = missions.filter((m) => m.active);
     setLimitReached(atMissionLimit(activeMissions.length, userTier));
   }, [missions, userTier]);
+
+  useEffect(() => {
+    function onInstallPrompt(event: Event) {
+      event.preventDefault();
+      setInstallPrompt(event as Event & { prompt: () => Promise<void> });
+    }
+    window.addEventListener('beforeinstallprompt', onInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', onInstallPrompt);
+  }, []);
 
   async function loadMissions() {
     if (!user) return;
@@ -870,6 +887,27 @@ export default function SecretAgent({
                 </>
               )}
             </div>
+
+            {installPrompt && (
+              <div>
+                <p className="font-mono text-[13px] text-[#a0a0a0] uppercase tracking-widest mb-3">
+                  Taskbar
+                </p>
+                <p className="font-mono text-[12px] text-[#888] leading-relaxed mb-3">
+                  Install SA as an app to pin it beside Chrome. Unread Pings show as 1, 2, 3 on that icon.
+                </p>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await installPrompt.prompt();
+                    setInstallPrompt(null);
+                  }}
+                  className="font-mono text-[12px] uppercase tracking-widest text-[#1a1a1a] bg-amber-400 hover:bg-amber-300 px-3 py-2 rounded-sm"
+                >
+                  Add SA to this PC
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

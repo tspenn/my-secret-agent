@@ -1,9 +1,10 @@
 {
   "name": "My Secret Agent",
-  "short_name": "Secret Agent",
+  "short_name": "SA",
   "description": "A silent watchman for the things you can't watch yourself.",
   "start_url": "/",
   "scope": "/",
+  "id": "/",
   "display": "standalone",
   "background_color": "#1a1a1a",
   "theme_color": "#1a1a1a",
