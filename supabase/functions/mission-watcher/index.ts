@@ -462,7 +462,7 @@ function evaluateCondition(
 
 async function sendPushToUser(userId: string, title: string, body: string, url = "/") {
   const vapidPublicKey =
-    Deno.env.get("WEB_PUSH_PUBLIC_KEY_MY_SECRET_AGENT") ?? Deno.env.get("WEB-PUSH_PUBLIC_KEY");
+    Deno.env.get("WEB_PUSH_PUBLIC_KEY_MY_SECRET_AGENT") ?? Deno.env.get("WEB_PUSH_PUBLIC_KEY");
   const vapidPrivateKey =
     Deno.env.get("WEB_PUSH_PRIVATE_KEY_MY_SECRET_AGENT") ?? Deno.env.get("WEB_PUSH_PRIVATE_KEY");
   const vapidSubject =

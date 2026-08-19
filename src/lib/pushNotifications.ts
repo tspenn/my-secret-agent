@@ -1,7 +1,11 @@
 import { supabase } from './supabase';
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY_MY_SECRET_AGENT as string | undefined;
 const SW_PATH = '/sw.js';
+const VAPID_ENDPOINT = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/web-push-public-key`;
+
+let vapidPublicKey: string | null =
+  (import.meta.env.VITE_VAPID_PUBLIC_KEY_MY_SECRET_AGENT as string | undefined) || null;
+let vapidLoad: Promise<string | null> | null = null;
 
 export type PushPermissionState = 'granted' | 'denied' | 'default' | 'unsupported';
 export type PushBlockReason =
@@ -29,13 +33,34 @@ function isStandalonePWA(): boolean {
 }
 
 export function pushBlockReason(): PushBlockReason {
-  if (!VAPID_PUBLIC_KEY) return 'missing-key';
   if (isIOSChrome()) return 'ios-chrome';
   if (isIOS() && !isStandalonePWA()) return 'ios-needs-home-screen';
   if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
     return 'no-push-api';
   }
   return null;
+}
+
+export async function ensureVapidPublicKey(): Promise<string | null> {
+  if (vapidPublicKey) return vapidPublicKey;
+  if (!vapidLoad) {
+    vapidLoad = (async () => {
+      try {
+        const res = await fetch(VAPID_ENDPOINT, {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          },
+        });
+        if (!res.ok) return null;
+        const json = (await res.json()) as { publicKey?: string };
+        vapidPublicKey = json.publicKey || null;
+        return vapidPublicKey;
+      } catch {
+        return null;
+      }
+    })();
+  }
+  return vapidLoad;
 }
 
 export function pushSupported(): boolean {
@@ -160,6 +185,11 @@ export async function enablePushNotifications(userId: string): Promise<PushEnabl
     return { ok: false, error: pushBlockMessage(blocked) };
   }
 
+  const publicKey = await ensureVapidPublicKey();
+  if (!publicKey) {
+    return { ok: false, error: 'Pings are not configured on this site yet.' };
+  }
+
   try {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
@@ -177,7 +207,7 @@ export async function enablePushNotifications(userId: string): Promise<PushEnabl
     const existing = await registration.pushManager.getSubscription();
     const subscription = existing ?? await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY!),
+      applicationServerKey: urlBase64ToUint8Array(publicKey),
     });
 
     const saved = await saveSubscription(userId, subscription);
