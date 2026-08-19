@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase, type SecretAgentMission, type WatchType, type NewMission, type ConditionOperator, parseCondition, resolveNewsKeyword } from '../lib/supabase';
 import { signOut } from '../lib/auth';
-import { pushSupported, getPushPermission, enablePushNotifications, disablePushNotifications } from '../lib/pushNotifications';
+import { pushSupported, pushBlockMessage, getPushPermission, enablePushNotifications, disablePushNotifications } from '../lib/pushNotifications';
 import AuthModal from '../components/AuthModal';
 import AdSidebar from '../components/AdSidebar';
 import type { AuthState } from '../lib/auth';
@@ -574,19 +574,20 @@ export default function SecretAgent({
                 <Bell size={11} />
                 Ping me
               </button>
-              {newNotifyPush && !pushEnabled && pushPermission !== 'unsupported' && (
-                <button
-                  type="button"
-                  onClick={() => { void togglePush(); }}
-                  className="font-mono text-[11px] text-amber-500/90 underline underline-offset-2 hover:text-amber-400 text-left"
-                >
-                  Turn on Pings on this device — your browser will ask for permission.
-                </button>
-              )}
-              {newNotifyPush && pushPermission === 'denied' && (
-                <p className="font-mono text-[11px] text-amber-500/70">
-                  Notifications are blocked. Allow them for this site in the browser, then turn Pings on.
-                </p>
+              {newNotifyPush && !pushEnabled && (
+                pushSupported() ? (
+                  <button
+                    type="button"
+                    onClick={() => { void togglePush(); }}
+                    className="font-mono text-[11px] text-amber-500/90 underline underline-offset-2 hover:text-amber-400 text-left"
+                  >
+                    Turn on Pings on this device — your browser will ask for permission.
+                  </button>
+                ) : (
+                  <p className="font-mono text-[11px] text-amber-500/70 leading-relaxed">
+                    {pushBlockMessage()}
+                  </p>
+                )
               )}
             </div>
 
@@ -816,7 +817,7 @@ export default function SecretAgent({
 
               {pushPermission === 'unsupported' || !pushSupported() ? (
                 <p className="font-mono text-[12px] text-amber-500/70 leading-relaxed">
-                  Notifications are not supported in this browser. Try Chrome, Edge, or Firefox on a device that allows web push.
+                  {pushBlockMessage()}
                 </p>
               ) : (
                 <>
