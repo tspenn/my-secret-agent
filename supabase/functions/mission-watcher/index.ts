@@ -354,6 +354,20 @@ function resolveNewsKeyword(target: string, conditionText: string): string {
 // Builder plan: $69/mo for 75k/month if you outgrow free.
 // Docs: https://currentsapi.services/
 
+/** Currents start_date must be YYYY-MM-DDTHH:MM:SS+00:00 — raw article timestamps 400. */
+function toCurrentsStartDate(since: string | null): string | null {
+  if (!since) return null;
+  const ms = Date.parse(since);
+  if (Number.isNaN(ms)) return null;
+  return `${new Date(ms).toISOString().slice(0, 19)}+00:00`;
+}
+
+function publishedMs(value: string | null | undefined): number {
+  if (!value) return 0;
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) ? 0 : ms;
+}
+
 async function fetchNewsKeyword(
   keyword: string,
   since: string | null,
@@ -367,11 +381,19 @@ async function fetchNewsKeyword(
   const key = Deno.env.get("CURRENTS_API_KEY");
   if (!key) throw new Error("CURRENTS_API_KEY not configured (currentsapi.services)");
 
-  const startParam = since ? `&start_date=${encodeURIComponent(since)}` : "";
+  const startDate = toCurrentsStartDate(since);
   const categoryParam = category ? `&category=${encodeURIComponent(category)}` : "";
-  const url = `https://api.currentsapi.services/v1/search?keywords=${encodeURIComponent(keyword)}&language=en&page_size=5${startParam}${categoryParam}&apiKey=${key}`;
 
-  const res = await fetch(url);
+  const buildUrl = (start: string | null) => {
+    const startParam = start ? `&start_date=${encodeURIComponent(start)}` : "";
+    return `https://api.currentsapi.services/v1/search?keywords=${encodeURIComponent(keyword)}&language=en${startParam}${categoryParam}&apiKey=${key}`;
+  };
+
+  let res = await fetch(buildUrl(startDate));
+  if (!res.ok && startDate) {
+    console.warn(`Currents HTTP ${res.status} with start_date; retrying without it`);
+    res = await fetch(buildUrl(null));
+  }
   if (!res.ok) throw new Error(`Currents API HTTP ${res.status}`);
   const json = await res.json();
 
@@ -385,11 +407,13 @@ async function fetchNewsKeyword(
     published?: string;
   }>;
 
+  const latest = [...articles].sort((a, b) => publishedMs(b.published) - publishedMs(a.published))[0];
+
   return {
     count: articles.length,
-    latestTitle: articles[0]?.title ?? "",
-    latestUrl: articles[0]?.url ?? "",
-    latestPublishedAt: articles[0]?.published ?? "",
+    latestTitle: latest?.title ?? "",
+    latestUrl: latest?.url ?? "",
+    latestPublishedAt: latest?.published ?? "",
   };
 }
 
@@ -437,9 +461,14 @@ function evaluateCondition(
 // ─── Push notification ────────────────────────────────────────────────────────
 
 async function sendPushToUser(userId: string, title: string, body: string, url = "/") {
-  const vapidPublicKey = Deno.env.get("WEB_PUSH_PUBLIC_KEY_MY_SECRET_AGENT");
-  const vapidPrivateKey = Deno.env.get("WEB_PUSH_PRIVATE_KEY_MY_SECRET_AGENT");
-  const vapidSubject = Deno.env.get("WEB_PUSH_CONTACT_EMAIL_MY_SECRET_AGENT") ?? "mailto:admin@example.com";
+  const vapidPublicKey =
+    Deno.env.get("WEB_PUSH_PUBLIC_KEY_MY_SECRET_AGENT") ?? Deno.env.get("WEB-PUSH_PUBLIC_KEY");
+  const vapidPrivateKey =
+    Deno.env.get("WEB_PUSH_PRIVATE_KEY_MY_SECRET_AGENT") ?? Deno.env.get("WEB_PUSH_PRIVATE_KEY");
+  const vapidSubject =
+    Deno.env.get("WEB_PUSH_CONTACT_EMAIL_MY_SECRET_AGENT") ??
+    Deno.env.get("WEB_PUSH_CONTACT-EMAIL") ??
+    "mailto:admin@example.com";
 
   if (!vapidPublicKey || !vapidPrivateKey) {
     console.warn("VAPID keys not configured (WEB_PUSH_PUBLIC_KEY_MY_SECRET_AGENT) — skipping web push");
@@ -448,11 +477,14 @@ async function sendPushToUser(userId: string, title: string, body: string, url =
 
   webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
 
-  const { data: subs, error } = await supabase
+  const { data: allSubs, error } = await supabase
     .from("user_push_subscriptions")
-    .select("id, endpoint, p256dh, auth")
-    .eq("user_id", userId)
-    .eq("app_id", "secret-agent");
+    .select("id, endpoint, p256dh, auth, app_id")
+    .eq("user_id", userId);
+
+  const subs = (allSubs ?? []).filter(
+    (sub) => !sub.app_id || sub.app_id === "secret-agent"
+  );
 
   if (error || !subs?.length) return;
 
@@ -706,12 +738,16 @@ Deno.serve(async (req: Request) => {
         }
 
         case "news_keyword": {
-          const previousLatest = (mission.metadata as { last_published?: string })?.last_published ?? null;
+          const meta = (mission.metadata as { last_published?: string; last_url?: string } | null) ?? {};
+          const previousLatest = meta.last_published ?? null;
+          const previousUrl = meta.last_url ?? null;
           const keyword = resolveNewsKeyword(mission.target, mission.condition_text ?? "");
           const category = (mission.metadata as { category?: string } | null)?.category ?? null;
           const { count, latestTitle, latestUrl, latestPublishedAt } = await fetchNewsKeyword(keyword, previousLatest, category);
           lastValue = String(count);
-          const isNew = !!previousLatest && !!latestPublishedAt && latestPublishedAt > previousLatest;
+          const newerByTime = !!previousLatest && publishedMs(latestPublishedAt) > publishedMs(previousLatest);
+          const newerByUrl = !!previousUrl && !!latestUrl && latestUrl !== previousUrl;
+          const isNew = newerByTime || newerByUrl;
           if (latestPublishedAt) metadataUpdate.last_published = latestPublishedAt;
           metadataUpdate.last_title = latestTitle;
           metadataUpdate.last_url = latestUrl;
@@ -749,6 +785,28 @@ Deno.serve(async (req: Request) => {
           alertMessage,
           `/?mission=${mission.id}`
         );
+      }
+
+      if (mission.webhook_url) {
+        try {
+          await fetch(mission.webhook_url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              mission_id: mission.id,
+              codename: mission.codename,
+              watch_type: mission.watch_type,
+              target: mission.target,
+              alert_message: alertMessage,
+              last_value: lastValue,
+              condition_operator: mission.condition_operator,
+              condition_value: mission.condition_value,
+              triggered_at: now.toISOString(),
+            }),
+          });
+        } catch (webhookErr) {
+          console.error("Webhook delivery failed:", mission.webhook_url, (webhookErr as Error).message);
+        }
       }
 
       // Write to app inbox (shared cross-app notification table)
