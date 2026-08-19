@@ -5,7 +5,7 @@ import {
 } from 'lucide-react';
 import { supabase, type SecretAgentMission, type WatchType, type NewMission, type ConditionOperator, parseCondition, resolveNewsKeyword } from '../lib/supabase';
 import { signOut } from '../lib/auth';
-import { pushSupported, pushBlockMessage, getPushPermission, enablePushNotifications, disablePushNotifications } from '../lib/pushNotifications';
+import { pushSupported, pushBlockMessage, getPushPermission, enablePushNotifications, disablePushNotifications, restoreAndSyncPush } from '../lib/pushNotifications';
 import AuthModal from '../components/AuthModal';
 import AdSidebar from '../components/AdSidebar';
 import type { AuthState } from '../lib/auth';
@@ -224,6 +224,7 @@ export default function SecretAgent({
   const [missions, setMissions] = useState<SecretAgentMission[]>([]);
   const [pushEnabled, setPushEnabled] = useState(false);
   const [pushPermission, setPushPermission] = useState<string>('default');
+  const [pushError, setPushError] = useState<string | null>(null);
   const [activating, setActivating] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -281,15 +282,18 @@ export default function SecretAgent({
 
   useEffect(() => {
     getPushPermission().then((p) => setPushPermission(p));
-    // Check if already subscribed
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistration('/sw.js').then(async (reg) => {
-        if (!reg) return;
-        const sub = await reg.pushManager.getSubscription();
-        setPushEnabled(!!sub);
-      });
-    }
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setPushEnabled(false);
+      return;
+    }
+    void restoreAndSyncPush(user.id).then(({ enabled, error }) => {
+      setPushEnabled(enabled);
+      setPushError(error);
+    });
+  }, [user]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -332,10 +336,14 @@ export default function SecretAgent({
     setActivating(true);
 
     if (newNotifyPush && !pushEnabled) {
-      const success = await enablePushNotifications(user.id);
-      if (success) {
+      const result = await enablePushNotifications(user.id);
+      if (result.ok) {
         setPushEnabled(true);
         setPushPermission('granted');
+        setPushError(null);
+      } else {
+        setPushError(result.error);
+        setPushPermission(await getPushPermission());
       }
     }
 
@@ -385,12 +393,15 @@ export default function SecretAgent({
       await disablePushNotifications(user.id);
       setPushEnabled(false);
       setPushPermission('default');
+      setPushError(null);
     } else {
-      const success = await enablePushNotifications(user.id);
-      if (success) {
+      const result = await enablePushNotifications(user.id);
+      if (result.ok) {
         setPushEnabled(true);
         setPushPermission('granted');
+        setPushError(null);
       } else {
+        setPushError(result.error);
         setPushPermission(await getPushPermission());
       }
     }
@@ -812,8 +823,14 @@ export default function SecretAgent({
               </p>
 
               <p className="font-mono text-[12px] text-[#888] leading-relaxed mb-4">
-                Mission alerts are delivered as notifications (Ping). You must have notifications turned on on your device/devices to receive them.
+                Mission alerts are delivered as notifications (Ping). Turn this on in the app for each device — browser or phone notification settings alone are not enough.
               </p>
+
+              {pushError && (
+                <p className="font-mono text-[12px] text-red-400/90 leading-relaxed mb-4">
+                  {pushError}
+                </p>
+              )}
 
               {pushPermission === 'unsupported' || !pushSupported() ? (
                 <p className="font-mono text-[12px] text-amber-500/70 leading-relaxed">
