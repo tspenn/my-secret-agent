@@ -30,7 +30,6 @@ export interface Ad {
 }
 
 export const AD_DISCLOSURE_SUFFIX = ' - sponsored';
-export const FEED_AD_EVERY = 20;
 
 const SKYLAND = 'https://www.skylandapps.com';
 const FRIDAY_HELP = 'https://www.getfridayshelp.com';
@@ -336,24 +335,4 @@ export function adsWithMedia(): Ad[] {
 export function adsForSide(side: 'left' | 'right'): Ad[] {
   const units = adsWithMedia();
   return side === 'right' ? [...units].reverse() : units;
-}
-
-/** Rotate catalog ads into a list: every FEED_AD_EVERY items, or one at the quiet end. */
-export function insertFeedAds<T>(items: T[]): Array<{ kind: 'item'; item: T } | { kind: 'ad'; ad: Ad }> {
-  const ads = adsWithMedia();
-  const out: Array<{ kind: 'item'; item: T } | { kind: 'ad'; ad: Ad }> = [];
-  if (ads.length === 0) {
-    return items.map((item) => ({ kind: 'item' as const, item }));
-  }
-  const seed = Math.floor(Date.now() / 86_400_000);
-  items.forEach((item, i) => {
-    out.push({ kind: 'item', item });
-    if ((i + 1) % FEED_AD_EVERY === 0) {
-      out.push({ kind: 'ad', ad: ads[(seed + Math.floor(i / FEED_AD_EVERY)) % ads.length] });
-    }
-  });
-  if (items.length < FEED_AD_EVERY) {
-    out.push({ kind: 'ad', ad: ads[seed % ads.length] });
-  }
-  return out;
 }

@@ -7,11 +7,10 @@ import { supabase, type SecretAgentMission, type WatchType, type NewMission, typ
 import { signOut } from '../lib/auth';
 import { pushSupported, getPushPermission, enablePushNotifications, disablePushNotifications } from '../lib/pushNotifications';
 import AuthModal from '../components/AuthModal';
-import AdCard from '../components/AdCard';
 import AdSidebar from '../components/AdSidebar';
 import type { AuthState } from '../lib/auth';
 import { MODE, atMissionLimit, missionLimitForTier, resolveUserTier } from '../lib/appMode';
-import { adsForSide, insertFeedAds } from '../lib/ads';
+import { adsForSide } from '../lib/ads';
 
 type UserTier = 'sa_free' | 'agent' | 'network';
 
@@ -211,9 +210,6 @@ export default function SecretAgent({
   const MISSION_LIMIT = missionLimitForTier(userTier);
   const isFreeTier = userTier === 'sa_free';
   const networkTier = MODE.tiers.find((t) => t.id === 'network');
-  const missionFeed = isFreeTier
-    ? insertFeedAds(missions)
-    : missions.map((item) => ({ kind: 'item' as const, item }));
   const selectedOption = WATCH_OPTIONS.find((o) => o.boardId === boardId)!;
   const watchType = selectedOption.value;
 
@@ -594,39 +590,27 @@ export default function SecretAgent({
           </div>
         </section>
 
-        {/* Active missions — free users get a house ad every 20 items, or one at the quiet end */}
-        {(missions.length > 0 || isFreeTier) && (
+        {/* Active missions */}
+        {missions.length > 0 && (
           <section className="mb-12">
-            {missions.length > 0 && (
-              <div className="flex items-center gap-3 mb-5">
-                <p className="font-mono text-[12px] text-amber-400/90 tracking-[0.3em] uppercase">
-                  — Active Missions —
-                </p>
-                <span className="font-mono text-[12px] text-green-400/80">
-                  {missions.length} running
-                  {user && isFinite(MISSION_LIMIT) && ` · ${Math.max(0, MISSION_LIMIT - missions.length)} slot${MISSION_LIMIT - missions.length !== 1 ? 's' : ''} remaining`}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center gap-3 mb-5">
+              <p className="font-mono text-[12px] text-amber-400/90 tracking-[0.3em] uppercase">
+                — Active Missions —
+              </p>
+              <span className="font-mono text-[12px] text-green-400/80">
+                {missions.length} running
+                {user && isFinite(MISSION_LIMIT) && ` · ${Math.max(0, MISSION_LIMIT - missions.length)} slot${MISSION_LIMIT - missions.length !== 1 ? 's' : ''} remaining`}
+              </span>
+            </div>
             <div className="flex flex-col gap-3">
-              {missions.length === 0 && (
-                <div className="text-center py-12 border border-dashed border-[#2e2e2e] rounded-sm">
-                  <p className="font-mono text-xs text-[#8a8a8a] tracking-widest uppercase">No active missions</p>
-                  <p className="font-mono text-[12px] text-[#777] mt-1">Your agent is standing by. Deploy one above.</p>
-                </div>
-              )}
-              {missionFeed.map((row) =>
-                row.kind === 'ad' ? (
-                  <AdCard key={row.ad.id} ad={row.ad} />
-                ) : (
-                  <MissionCard key={row.item.id} mission={row.item} onDeactivate={deactivateMission} />
-                ),
-              )}
+              {missions.map((m) => (
+                <MissionCard key={m.id} mission={m} onDeactivate={deactivateMission} />
+              ))}
             </div>
           </section>
         )}
 
-        {missions.length === 0 && !isFreeTier && (
+        {missions.length === 0 && (
           <div className="text-center py-12 border border-dashed border-[#2e2e2e] rounded-sm mb-12">
             <p className="font-mono text-xs text-[#8a8a8a] tracking-widest uppercase">No active missions</p>
             <p className="font-mono text-[12px] text-[#777] mt-1">Your agent is standing by. Deploy one above.</p>
