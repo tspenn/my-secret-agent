@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Eye, Shield, Cloud, Tag, Settings, Bell, BellOff, LogOut, LogIn, TrendingUp,
-  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, Trophy, X,
+  Bitcoin, Activity, Wind, Globe, Rss, Newspaper, Trophy, X, ExternalLink,
 } from 'lucide-react';
 import { supabase, type SecretAgentMission, type WatchType, type NewMission, type ConditionOperator, parseCondition, resolveNewsKeyword } from '../lib/supabase';
 import { signOut } from '../lib/auth';
@@ -141,6 +141,20 @@ function Ticker() {
   );
 }
 
+function missionSourceUrl(mission: SecretAgentMission): string | null {
+  const meta = (mission.metadata ?? {}) as { last_url?: unknown; last_link?: unknown };
+  const candidates = [meta.last_url, meta.last_link];
+  if (mission.watch_type === 'website_change' || mission.watch_type === 'sale_price') {
+    candidates.push(mission.target);
+  }
+  for (const value of candidates) {
+    if (typeof value === 'string' && /^https?:\/\//i.test(value.trim())) {
+      return value.trim();
+    }
+  }
+  return null;
+}
+
 function MissionCard({
   mission,
   onDeactivate,
@@ -151,6 +165,8 @@ function MissionCard({
   const isSports = (mission.metadata as { category?: string } | null)?.category === 'sports';
   const Icon = isSports ? Trophy : (WATCH_ICONS[mission.watch_type as WatchType] ?? Eye);
   const isAlert = mission.status_message.startsWith('⚠') || mission.status_message.startsWith('✓');
+  const sourceUrl = missionSourceUrl(mission);
+  const statusClass = isAlert ? 'text-amber-400/90' : 'text-green-400/80';
 
   return (
     <div className="mission-card flex items-start gap-4 bg-[#232323] border border-[#333] rounded-sm p-5 group">
@@ -159,9 +175,21 @@ function MissionCard({
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[#f5f0e8] font-semibold text-sm tracking-wide mb-1 truncate">{mission.codename}</p>
-        <p className={`font-mono text-[13px] leading-relaxed truncate ${isAlert ? 'text-amber-400/90' : 'text-green-400/80'}`}>
-          {mission.status_message}
-        </p>
+        {sourceUrl ? (
+          <a
+            href={sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`font-mono text-[13px] leading-relaxed inline-flex items-start gap-1.5 underline underline-offset-2 decoration-amber-500/40 hover:decoration-amber-400 ${statusClass}`}
+          >
+            <span>{mission.status_message}</span>
+            <ExternalLink size={12} className="flex-shrink-0 mt-0.5 opacity-80" />
+          </a>
+        ) : (
+          <p className={`font-mono text-[13px] leading-relaxed ${statusClass}`}>
+            {mission.status_message}
+          </p>
+        )}
         <p className="font-mono text-[12px] text-[#a0a0a0] mt-1 truncate">
           TARGET: {mission.target || '—'} · TRIGGER: {mission.condition_text || '—'}
         </p>
