@@ -7,11 +7,12 @@ import { supabase, type SecretAgentMission, type WatchType, type NewMission, typ
 import { signOut } from '../lib/auth';
 import { pushSupported, getPushPermission, enablePushNotifications, disablePushNotifications } from '../lib/pushNotifications';
 import AuthModal from '../components/AuthModal';
-import AdColumnCard from '../components/AdColumnCard';
+import AdCard from '../components/AdCard';
 import AdSidebar from '../components/AdSidebar';
+import ProductAdCard from '../components/ProductAdCard';
 import type { AuthState } from '../lib/auth';
 import { MODE, atMissionLimit, missionLimitForTier, resolveUserTier } from '../lib/appMode';
-import { adsForSide, adsWithMedia, adMediaUrl } from '../lib/ads';
+import { adsForSide, adsWithMedia, productAds } from '../lib/ads';
 
 type UserTier = 'sa_free' | 'agent' | 'network';
 
@@ -421,6 +422,12 @@ export default function SecretAgent({
 
       <main className="flex-1 w-full px-4 sm:px-6 py-12 md:py-16">
 
+        {isFreeTier && productAds().map((ad) => (
+          <div key={`${ad.id}-banner`} className="product-ad-banner-wrap">
+            <ProductAdCard ad={ad} variant="banner" />
+          </div>
+        ))}
+
         {/* The Van upgrade prompt — Agent-tier users who click The Van (hidden on free) */}
         {showVanUpgradePrompt && !isFreeTier && (
           <div className="mb-8 flex items-start gap-4 bg-amber-500/10 border border-amber-500/30 rounded-sm px-5 py-4">
@@ -619,21 +626,16 @@ export default function SecretAgent({
           </div>
         )}
 
-        {/* Stacked 3:2 house ads — tablet and phone. Hidden once side columns appear. */}
+        {/* Phone / tablet feed — hidden once the 30% side columns appear. */}
         {isFreeTier && (
           <div className="sa-ads-stack">
-            {adsWithMedia().map((ad) => (
-              <AdColumnCard
-                key={ad.id}
-                imageUrl={ad.image ? adMediaUrl(ad.image) : ''}
-                videoUrl={ad.video ? adMediaUrl(ad.video) : undefined}
-                destinationUrl={ad.ctaUrl}
-                alt={ad.headline}
-                variant="dark"
-                caption={ad.overlayTitle}
-                subhead={ad.overlayLine}
-              />
-            ))}
+            {adsWithMedia().map((ad) =>
+              ad.layout === 'product' ? (
+                <ProductAdCard key={ad.id} ad={ad} variant="portrait" />
+              ) : (
+                <AdCard key={ad.id} ad={ad} />
+              ),
+            )}
           </div>
         )}
 

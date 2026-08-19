@@ -1,15 +1,17 @@
 /**
  * My Secret Agent — Ad System
  *
- * Ads show only to free-tier users (1-mission plan).
- * House ads: Secret Agent Agent/Network upsells, plus Skyland Suite.
- * FRIDAY Canvas copy and links come from getfridayshelp.com.
+ * Creatives live in the shared Supabase Storage bucket `Ads`:
+ *   {VITE_SUPABASE_URL}/storage/v1/object/public/Ads/{filename}
  *
- * Layout (desktop ≥ 1200px, free plan): 30% ads | 40% brief | 30% ads.
- * Side cards: 1550×1550 frame, 1536×1024 creative centered inside.
- * Tablet/mobile: same cards stacked full-width under the brief.
+ * Free tier only. Never say “app” in visitor-facing copy —
+ * say web based, companion, tool, utility, at your fingertips, all your devices.
  *
- * Paid plans keep the same 40% center with empty side columns.
+ * Frames:
+ *   AdCard          4:5 (16:9 if video or a wide still)
+ *   AdPanel         16:9
+ *   SidebarAd       1:1
+ *   ProductAdCard   4:5 / 16:9 / 1:1 / 728×90
  */
 
 import { MODE } from './appMode';
@@ -19,41 +21,93 @@ export interface Ad {
   label: string;
   headline: string;
   description: string;
-  ctaText?: string;
+  ctaText: string;
   ctaUrl: string;
-  /** Public path, absolute URL, or Supabase Storage path inside the "ads" bucket. */
-  video?: string;
-  /** Public path, absolute URL, or Supabase Storage path inside the "ads" bucket. */
-  image?: string;
-  /** Optional title drawn over the bottom of the column card. */
-  overlayTitle?: string;
-  /** Optional line under the overlay title. */
-  overlayLine?: string;
-  /** AdPanel content — shown when user clicks the in-feed card */
   panelTitle?: string;
   panelParagraphs?: string[];
   panelBullets?: string[];
-  panelLinks?: { label: string; url: string }[];
+  panelLinks?: Array<{ label: string; url: string }>;
+  video?: string;
+  image?: string;
+  layout?: 'default' | 'product';
+  brand?: string;
+  price?: string;
+  sizeLabel?: string;
+  tagline?: string;
+  blurb?: string;
+  imagePortrait?: string;
+  imageWide?: string;
+  overlayTitle?: string;
+  overlayLine?: string;
 }
 
-const STORAGE_BASE = 'https://psbdjnqcjpxapypcfigx.supabase.co/storage/v1/object/public/ads';
-const SKYLAND = 'https://www.skylandapps.com';
+const ADS_BASE = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/Ads`;
 const FRIDAY_HELP = 'https://www.getfridayshelp.com';
+const SKYLAND = 'https://www.skylandapps.com';
 
 const agentTier = MODE.tiers.find((t) => t.id === 'agent');
 const networkTier = MODE.tiers.find((t) => t.id === 'network');
 
-/** Resolve a storage path, site-relative path, or absolute URL. */
+function asset(filename: string): string {
+  return `${ADS_BASE}/${filename.replace(/ /g, '%20')}`;
+}
+
+const FRIDAY_STILL = asset('friday-margaret-banner.jpg');
+const FRIDAY_PLANS = [
+  'Intro — 30 days free. No credit card.',
+  'Lite — $5.99/mo or $59.90/yr',
+  'Busy — $14.99/mo or $149/yr',
+  'It’s Complicated — $29.99/mo or $299/yr',
+  'Desk — $79.99/mo',
+];
+
+function fridayUnit(
+  id: string,
+  headline: string,
+  ctaUrl: string,
+  panelTitle: string,
+  doorIn: string,
+  storyLabel?: string,
+): Ad {
+  const panelLinks = [
+    { label: 'Get Friday’s Help', url: FRIDAY_HELP },
+    { label: 'Tour', url: `${FRIDAY_HELP}/tour` },
+    { label: 'fridaycanvas.com', url: 'https://fridaycanvas.com/' },
+  ];
+  if (storyLabel && ctaUrl !== FRIDAY_HELP) {
+    panelLinks.unshift({ label: storyLabel, url: ctaUrl });
+  }
+  return {
+    id,
+    label: 'From FRIDAY Canvas',
+    headline,
+    description: doorIn,
+    ctaText: 'Get Friday’s Help',
+    ctaUrl,
+    image: FRIDAY_STILL,
+    panelTitle,
+    panelParagraphs: [
+      doorIn,
+      'FRIDAY Canvas is one workspace for your thoughts, projects, and workload — at your fingertips, on all your devices.',
+      'A private notebook with a safe, friendly assistant beside you. Toggle the assistant off when you want to shut the office door.',
+      '30 days free. No credit card. Cancel anytime.',
+    ],
+    panelBullets: FRIDAY_PLANS,
+    panelLinks,
+  };
+}
+
 export function adMediaUrl(path: string): string {
   if (path.startsWith('http://') || path.startsWith('https://') || path.startsWith('/')) {
     return path;
   }
-  return `${STORAGE_BASE}/${path}`;
+  return asset(path);
 }
 
-/**
- * Master ad list. Even index → left column, odd index → right column.
- */
+export function hasAdMedia(ad: Ad): boolean {
+  return Boolean(ad.image || ad.video || ad.imagePortrait || ad.imageWide);
+}
+
 export const ADS: Ad[] = [
   {
     id: 'sa-agent',
@@ -67,7 +121,7 @@ export const ADS: Ad[] = [
     overlayLine: '5 active watches · hourly checks',
     panelTitle: 'Upgrade to Agent',
     panelParagraphs: [
-      'A serious casual user runs a handful of watches. Agent gives you five active missions, checked every hour.',
+      'Five active watches, checked every hour, at your fingertips on all your devices.',
       'Deactivate one to add another. Push notifications (Ping) included.',
     ],
     panelBullets: agentTier?.featureBullets,
@@ -87,7 +141,7 @@ export const ADS: Ad[] = [
     overlayLine: '20 watches · The Van · Sunday digest',
     panelTitle: 'Upgrade to Network',
     panelParagraphs: [
-      'Run a desk of watches. Network unlocks 20 active missions, The Van dashboard, faster checks, and a weekly digest on Sunday nights.',
+      'Twenty active watches, The Van, faster checks, and a weekly digest on Sunday nights.',
     ],
     panelBullets: networkTier?.featureBullets,
     panelLinks: networkTier?.stripeLinkAnnual
@@ -95,223 +149,183 @@ export const ADS: Ad[] = [
       : undefined,
   },
   {
-    id: 'friday-canvas',
-    label: 'Skyland Suite',
-    headline: 'FRIDAY Canvas',
-    description:
-      'For people with too many tabs and too many thoughts. One workspace for your thoughts, projects, and workload — with FRIDAY beside you to sort it and show you how.',
-    ctaText: 'Get Friday’s Help',
-    ctaUrl: FRIDAY_HELP,
-    image: '/ads/friday-canvas-hero.png',
-    panelTitle: 'FRIDAY Canvas',
+    id: 'ad-gonews-premium',
+    label: 'From Skyland Suite',
+    headline: 'Go News Premium',
+    description: 'Save stories, folders, and offline reading — your personal briefing.',
+    ctaText: 'Upgrade to Premium',
+    ctaUrl: 'https://go-news.app/?upgrade=true',
+    video: asset('Premium saves.mp4'),
+    panelTitle: 'Go News Premium — your personal intelligence briefing',
     panelParagraphs: [
-      'For people with too many tabs and too many thoughts.',
-      'FRIDAY Canvas helps you capture ideas, run projects, and keep a clear picture of what you’ve done, what’s next, and what you’d like to do — with FRIDAY beside you to sort it and show you how.',
-      'A simple personal notebook combined with a safe, friendly AI assistant — all in one calm, private space. Toggle the assistant off when you want to shut the office door.',
-      '30 days free. No credit card. Cancel anytime.',
+      'A web-based news companion. Save stories to your library, organize them into folders, and read offline anywhere.',
+      'Premium includes everything in Pro — all 10 topic filters, ad-free reading, and cloud sync — plus full-text archive and offline reading.',
     ],
     panelBullets: [
-      'Thoughts & ideas — capture the swirl before it disappears',
-      'WorkZones so each project stays findable',
-      'What you’ve done, what’s next, and what you’d like to do',
-      'Your data stays yours. We do not sell it or use it to train AI models',
+      'Save stories and create custom folders',
+      'Full article text archived automatically',
+      'Offline reading when you have no connection',
+      'Premium $9.99/mo or $89.91/yr — 3 months free',
     ],
     panelLinks: [
-      { label: 'Get Friday’s Help', url: FRIDAY_HELP },
-      { label: 'See inside', url: `${FRIDAY_HELP}/details/inside` },
-      { label: 'Tour', url: `${FRIDAY_HELP}/tour` },
+      { label: 'Upgrade to Premium', url: 'https://go-news.app/?upgrade=true' },
+      { label: 'Product details', url: `${SKYLAND}/go-news-app/` },
     ],
   },
   {
-    id: 'go-news',
-    label: 'Skyland Suite',
-    headline: 'Go News',
-    description:
-      'Keeping tabs on all the things that matter. Light, fast, and ready on all your devices.',
-    ctaText: 'Start reading',
-    ctaUrl: 'https://go-news.app/',
-    image: '/ads/go-news-hero.png',
-    panelTitle: 'Go News',
+    id: 'ad-gonews-plans',
+    label: 'From Skyland Suite',
+    headline: 'Go News plans',
+    description: 'Keeping tabs on all the things that matter. Light, fast, all your devices.',
+    ctaText: 'See what’s inside',
+    ctaUrl: 'https://go-news.app/?upgrade=true',
+    image: asset('gonews-agent-banner.jpg'),
+    panelTitle: 'What’s inside a Go News subscription',
     panelParagraphs: [
-      'A web-based news companion — not a store listing, not a 400-megabyte update.',
-      'World, Africa, faith, geopolitics, sports, fashion, lifestyle, and tech. Chronological. No algorithm games.',
-      'Try Go News free forever. No credit card. Upgrade when you are ready.',
+      'Keeping tabs on all the things that matter. Not just one thing. Not just one take.',
+      'Your personal news companion for every story, every category, and everything happening in the world right now — without algorithm games.',
     ],
     panelBullets: [
-      'All Headlines feed, always fresh',
-      'Ten topic filters — Basic unlocks three, Pro unlocks all ten',
-      'Private reading. We do not sell your data.',
-    ],
-    panelLinks: [{ label: 'About Go News', url: `${SKYLAND}/go-news-app` }],
-  },
-  {
-    id: 'gia',
-    label: 'Skyland Suite',
-    headline: 'GIA',
-    description:
-      'Go Intelligence Agency. Deploy operatives on the markets, competitors and signals that move your business.',
-    ctaText: 'See GIA',
-    ctaUrl: `${SKYLAND}/gia`,
-    image: '/ads/gia-hero.png',
-    panelTitle: 'GIA — Go Intelligence Agency',
-    panelParagraphs: [
-      'Your personal intelligence operation. Deploy operatives on the markets, competitors, news signals, and data sources that move your business.',
-      'Get briefed when something changes. No IT department. No enterprise contract. Coming soon.',
+      'Go News Free — $0 forever: All Headlines feed, story search, ad-supported. No credit card.',
+      'Basic — $3.99/mo or $35.91/yr: any 3 topic filters, ad-free, cloud sync.',
+      'Pro — $5.99/mo or $53.91/yr: all 10 filters, ad-free, cloud sync.',
+      'Premium — $9.99/mo or $89.91/yr: everything in Pro plus save, folders, full-text archive, and offline reading.',
     ],
     panelLinks: [
-      { label: 'go-i-agency.com', url: 'https://go-i-agency.com' },
-      { label: 'About GIA', url: `${SKYLAND}/gia` },
+      { label: 'See plans / upgrade', url: 'https://go-news.app/?upgrade=true' },
+      { label: 'Product details', url: `${SKYLAND}/go-news-app/` },
     ],
   },
   {
-    id: 'go-shop',
-    label: 'Skyland Suite',
+    id: 'ad-go-shop',
+    label: 'From Skyland Suite',
     headline: 'Go Shop!',
-    description:
-      'Lists, recipes, trip planning, stock tracking, projects, and a budget — ready for the next store run.',
-    ctaText: 'Open Go Shop!',
+    description: 'Web based companion — List, Stock, Plan, Catalog, Budget, Recipes, Projects.',
+    ctaText: 'Try Go Shop! free',
     ctaUrl: 'https://www.my-go-shop.com/',
-    image: '/ads/go-shop-hero.png',
-    panelTitle: 'Go Shop!',
+    image: asset('go-shop-banner-mobile.png'),
+    panelTitle: 'Go Shop! — a web based shopping companion',
     panelParagraphs: [
-      'A web-based shopping companion — private, secure, and it will not bloat the device.',
-      'Add an item once and it lands in your Catalog. Next trip takes seconds instead of a blank page.',
+      'A web based companion for the list, the pantry, the trip, the recipes, and the bigger home jobs — at your fingertips, on all your devices.',
+      'List, Stock, Plan, Catalog, Budget, Recipes, Projects. Private, secure, and it will not bloat the device.',
     ],
-    panelBullets: ['List, Stock, Plan, Catalog, Budget, Recipes, Projects'],
-    panelLinks: [{ label: 'About Go Shop!', url: `${SKYLAND}/go-shop` }],
+    panelBullets: [
+      'Intro — $0. Lists, trips, stock, recipes. No credit card.',
+      'My Go Shop — $3.99/mo or $35.91/yr.',
+      'Family — $5.99/mo or $53.91/yr. One household list, up to three people.',
+    ],
+    panelLinks: [
+      { label: 'Open Go Shop!', url: 'https://www.my-go-shop.com/' },
+      { label: 'Product details', url: `${SKYLAND}/go-shop/` },
+    ],
   },
   {
-    id: 'lnklokr',
-    label: 'Skyland Suite',
-    headline: 'LnkLokr',
-    description:
-      'Your personal content vault. Copy a link, image, or scrap of text, then tap a category. No sign-up.',
-    ctaText: 'Open LnkLokr',
-    ctaUrl: 'https://lnklokr.com/',
-    image: '/ads/lnklokr-hero.png',
-    panelTitle: 'LnkLokr',
-    panelParagraphs: [
-      'Keep what you need, Borrow what’s temporary, Share what you send, or Bury it behind a PIN.',
-      'Everything stays on your device. We never see it.',
-    ],
-    panelBullets: ['Keep, Borrow, Share, Bury', 'No sign-up required'],
-    panelLinks: [{ label: 'About LnkLokr', url: `${SKYLAND}/lnklokr` }],
-  },
-  {
-    id: 'lokr',
-    label: 'Skyland Suite',
-    headline: 'LOKR',
-    description:
-      'Your own encrypted information locker. Private messaging for the people and files you actually care about.',
-    ctaText: 'Open LOKR',
-    ctaUrl: 'https://my-lokr.com',
-    image: '/ads/my-lokr-hero.png',
-    panelTitle: 'LOKR',
-    panelParagraphs: [
-      'A locked space for families, small teams, and businesses — not Gmail, not Outlook, not the open internet.',
-      'Invitees never get a bill. Start free. Stay free — unless you need more.',
-    ],
-    panelLinks: [{ label: 'About LOKR', url: `${SKYLAND}/my-lokr` }],
-  },
-  {
-    id: 'friday-desk',
-    label: 'Skyland Suite',
-    headline: 'FRIDAY Desk',
-    description:
-      'Business tier of FRIDAY Canvas. Operational clarity for leaders and growing teams — without status-meeting bloat.',
-    ctaText: 'See FRIDAY Desk',
-    ctaUrl: `${SKYLAND}/desk`,
-    image: '/ads/friday-desk-hero.png',
-    panelTitle: 'FRIDAY Desk',
-    panelParagraphs: [
-      'Built for leaders, managers, and growing teams who need total operational clarity.',
-      'Centralizes workflows, keeps active projects visible, and aligns everyone without status-meeting bloat.',
-    ],
-    panelLinks: [{ label: 'About FRIDAY Desk', url: `${SKYLAND}/desk` }],
-  },
-  {
-    id: 'support-agent',
-    label: 'Skyland Suite',
-    headline: 'My Support Agent',
-    description:
-      'Suggested reply wording and how to resolve each message, trained on your business.',
-    ctaText: 'Open My Support Agent',
+    id: 'ad-my-support-agent',
+    label: 'From Skyland Suite',
+    headline: 'Your inbox is chaos…',
+    description: 'Inbox → suggested reply + next step. Start free, no credit card.',
+    ctaText: 'Start free',
     ctaUrl: 'https://www.my-support-agent.com/',
-    image: '/ads/my-support-agent-hero.png',
-    panelTitle: 'My Support Agent',
+    image: asset('msa-agent-banner.png'),
+    panelTitle: 'Your inbox is chaos.',
     panelParagraphs: [
-      'A dedicated inbox for support, sales, or questions. Your agent meets every message with wording you can paste into your own reply, plus how to resolve it.',
+      'My Support Agent meets every message with wording you can paste into your own reply, plus how to resolve it.',
+      'You train it to know your business. Start free. No credit card.',
     ],
-    panelLinks: [{ label: 'About My Support Agent', url: `${SKYLAND}/my-support-agent-2` }],
+    panelLinks: [
+      { label: 'Start free — no credit card', url: 'https://www.my-support-agent.com/' },
+      { label: 'Product details', url: `${SKYLAND}/my-support-agent-2/` },
+    ],
   },
+  fridayUnit(
+    'ad-friday-canvas',
+    'Too many tabs. Too many thoughts.',
+    FRIDAY_HELP,
+    'FRIDAY Canvas',
+    'For people with too many tabs and too many thoughts.',
+  ),
+  fridayUnit(
+    'ad-friday-margaret',
+    '17 tabs, still organized',
+    `${FRIDAY_HELP}/margaret`,
+    'Margaret — thoughts, projects, and what’s next',
+    'Margaret has it sorted — thoughts, projects, and what’s next in one place.',
+    'Margaret’s story',
+  ),
+  fridayUnit(
+    'ad-friday-sarah',
+    'Thoughts, projects, next step',
+    FRIDAY_HELP,
+    'Sarah — how FRIDAY Canvas organizes the work',
+    'How FRIDAY Canvas organizes thoughts, projects, and next steps.',
+  ),
+  fridayUnit(
+    'ad-friday-marcus',
+    'Work and life, one picture',
+    FRIDAY_HELP,
+    'Marcus — work and life in one picture',
+    'Keep work and life in one clear picture.',
+  ),
+  fridayUnit(
+    'ad-friday-ed',
+    'Night ideas still there in the morning',
+    FRIDAY_HELP,
+    'Ed — capture ideas at night',
+    'Capture ideas at night before they disappear.',
+  ),
+  fridayUnit(
+    'ad-friday-annie',
+    'Business that was still in her head',
+    `${FRIDAY_HELP}/annie`,
+    'Annie — run a business from the ideas in your head',
+    'Run a business from the ideas in your head.',
+    'Annie’s story',
+  ),
+  fridayUnit(
+    'ad-friday-annie-jay',
+    'What’s done, what’s next',
+    FRIDAY_HELP,
+    'Annie and Jay — what’s done, what’s next',
+    'What’s done, what’s next, what you want to do.',
+  ),
   {
-    id: 'toc',
-    label: 'Skyland Suite',
-    headline: 'TOC',
-    description:
-      'Tactical Operations Command for COOs and chiefs of staff — Directives, owners, and close, not a chat scroll.',
-    ctaText: 'Open TOC',
-    ctaUrl: 'https://mytoc.app',
-    image: '/ads/toc-hero.png',
-    panelTitle: 'TOC',
-    panelParagraphs: [
-      'Open a Directive, attach the brief, name the owner, watch what’s current, close it yourself.',
-      '14-day trial, no credit card.',
-    ],
-    panelLinks: [{ label: 'About TOC', url: `${SKYLAND}/my-toc` }],
-  },
-  {
-    id: 'chkchk',
-    label: 'Skyland Suite',
-    headline: 'ChkChk',
-    description:
-      'Assign. Track. Confirm. A work-order tracker for families, coaches, and small crews.',
-    ctaText: 'Open ChkChk',
-    ctaUrl: 'https://www.chkchk.app/',
-    image: '/ads/chkchk-hero.png',
-    panelTitle: 'ChkChk',
-    panelParagraphs: [
-      'The Lead assigns the job, the team works the list, and nothing is done until the Lead signs off.',
-    ],
-    panelLinks: [{ label: 'About ChkChk', url: `${SKYLAND}/chkchk` }],
-  },
-  {
-    id: 'mny',
-    label: 'Skyland Suite',
-    headline: 'My$',
-    description: 'One button, one answer. Know exactly what you can spend right now — before your next paycheck.',
-    ctaText: 'See My$',
-    ctaUrl: `${SKYLAND}/mny`,
-    image: '/ads/mny-hero.png',
-    panelTitle: 'My$',
-    panelParagraphs: [
-      'One number for what you can actually spend right now, after bills and before payday. In development.',
-    ],
-    panelLinks: [{ label: 'About My$', url: `${SKYLAND}/mny` }],
-  },
-  {
-    id: 'mny-business',
-    label: 'Skyland Suite',
-    headline: 'MNY$',
-    description:
-      'Live available-to-spend across operating accounts, division budgets, credit lines, and upcoming bills or payroll.',
-    ctaText: 'See MNY$',
-    ctaUrl: `${SKYLAND}/mnybusiness`,
-    image: '/ads/mny-business-hero.png',
-    panelTitle: 'MNY$',
-    panelParagraphs: [
-      'Built for founders and operators who need the real number now — not a month-end P&L. In development.',
-    ],
-    panelLinks: [{ label: 'About MNY$', url: `${SKYLAND}/mnybusiness` }],
+    id: 'ad-hearts-daisies-backpack',
+    label: 'Back Alley Shoppe',
+    brand: 'Back Alley Shoppe',
+    headline: 'Hearts and Daisies Large Backpack',
+    description: 'Design exclusive to Back Alley. $185 · One Size.',
+    ctaText: 'Shop the backpack',
+    ctaUrl:
+      'https://buy.fineshoppes.com/products/hearts-and-daisies-back-alley-shoppe-large-backpack-all-over-print-casual-backpack-large-model-1733?variant=45820672180385',
+    image:
+      'https://buy.fineshoppes.com/cdn/shop/files/1f0e8c7fcfd6264999b7058492d5ef37.jpg?v=1773505669&width=1200',
+    imagePortrait:
+      'https://buy.fineshoppes.com/cdn/shop/files/1f0e8c7fcfd6264999b7058492d5ef37.jpg?v=1773505669&width=1200',
+    imageWide:
+      'https://buy.fineshoppes.com/cdn/shop/files/e91d7e1862a388a1b1e4723e2bc8f795.jpg?v=1773505668&width=1200',
+    layout: 'product',
+    price: '$185',
+    sizeLabel: 'One Size',
+    tagline: 'Design Exclusive to Back Alley',
+    blurb: 'All-over print, roomy enough for the day — carried quietly, noticed anyway.',
   },
 ];
 
-/** Ads that have image or video media. */
 export function adsWithMedia(): Ad[] {
-  return ADS.filter((a) => a.image || a.video);
+  return ADS.filter(hasAdMedia);
 }
 
-/** Split house ads across the two 30% columns. */
+export function productAds(): Ad[] {
+  return ADS.filter((a) => a.layout === 'product' && hasAdMedia(a));
+}
+
+/** Both side columns stack every media unit. Right column reverses the order. */
 export function adsForSide(side: 'left' | 'right'): Ad[] {
-  return adsWithMedia().filter((_, i) => (side === 'left' ? i % 2 === 0 : i % 2 === 1));
+  const units = adsWithMedia();
+  return side === 'right' ? [...units].reverse() : units;
+}
+
+/** Feed AdCard is 16:9 when there is a video, otherwise start 4:5 and flip if the still is wide. */
+export function feedStartsWide(ad: Ad): boolean {
+  return Boolean(ad.video);
 }

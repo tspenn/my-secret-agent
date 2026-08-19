@@ -49,14 +49,15 @@ export default function AdPanel({ ad, onClose }: AdPanelProps) {
           <video
             ref={videoRef}
             src={adMediaUrl(ad.video)}
+            poster={ad.image ? adMediaUrl(ad.image) : undefined}
             className="w-full aspect-video object-cover"
             loop
             playsInline
             controls
           />
-        ) : ad.image ? (
+        ) : (ad.image ?? ad.imageWide ?? ad.imagePortrait) ? (
           <img
-            src={adMediaUrl(ad.image)}
+            src={adMediaUrl((ad.image ?? ad.imageWide ?? ad.imagePortrait)!)}
             alt={ad.headline}
             className="w-full aspect-video object-cover"
           />

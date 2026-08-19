@@ -171,32 +171,146 @@
   }
 }
 
-/* Side-column ad: 1550×1550 frame, 1536×1024 card centered */
-.ad-column-slot {
+.ad-sidebar-spacer {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
+  aspect-ratio: 1 / 1;
 }
-.ad-column-card {
+
+.sidebar-ad {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+.sidebar-ad__frame {
   position: relative;
-  display: block;
   width: 100%;
-  max-width: 1536px;
-  aspect-ratio: 1536 / 1024;
+  aspect-ratio: 1 / 1;
   overflow: hidden;
-  text-decoration: none;
-  opacity: 1;
-  transition: opacity 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  background: #232323;
 }
-.ad-column-card__media {
-  display: block;
+.sidebar-ad__media {
   width: 100%;
   height: 100%;
   object-fit: cover;
   object-position: center;
 }
+
+.ad-feed-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: #1e1e1e;
+  border: 1px solid #2e2e2e;
+  padding: 0;
+  cursor: pointer;
+}
+.ad-feed-card:hover {
+  border-color: #444;
+}
+.ad-feed-card__frame {
+  width: 100%;
+  overflow: hidden;
+  background: #232323;
+}
+.ad-feed-card__frame--portrait {
+  aspect-ratio: 4 / 5;
+}
+.ad-feed-card__frame--wide {
+  aspect-ratio: 16 / 9;
+}
+.ad-feed-card__media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.ad-feed-card__copy {
+  padding: 0.85rem 1rem 1rem;
+}
+.ad-feed-card__title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.95rem;
+  color: #f5f0e8;
+}
+.ad-feed-card__desc {
+  margin-top: 0.25rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: #888;
+  line-height: 1.45;
+}
+.ad-feed-card__cta {
+  display: inline-block;
+  margin-top: 0.6rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 176, 0, 0.8);
+}
+
+.product-ad {
+  display: block;
+  text-decoration: none;
+  background: #1e1e1e;
+  border: 1px solid #2e2e2e;
+  overflow: hidden;
+}
+.product-ad:hover {
+  border-color: #444;
+}
+.product-ad__frame {
+  width: 100%;
+  overflow: hidden;
+  background: #232323;
+}
+.product-ad--portrait .product-ad__frame { aspect-ratio: 4 / 5; }
+.product-ad--landscape .product-ad__frame { aspect-ratio: 16 / 9; }
+.product-ad--square .product-ad__frame { aspect-ratio: 1 / 1; }
+.product-ad--banner {
+  max-width: 728px;
+  margin-inline: auto;
+  border: 0;
+  background: transparent;
+}
+.product-ad--banner .product-ad__frame {
+  aspect-ratio: 728 / 90;
+}
+.product-ad-banner-wrap {
+  margin-bottom: 1.5rem;
+}
+.product-ad__media {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.product-ad__copy {
+  padding: 0.75rem 0.9rem 0.9rem;
+}
+.product-ad__brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #888;
+}
+.product-ad__title {
+  margin-top: 0.2rem;
+  font-size: 0.9rem;
+  color: #f5f0e8;
+}
+.product-ad__meta {
+  margin-top: 0.25rem;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.7rem;
+  color: #ffb000;
+}
+
 .ad-column-card__caption {
   position: absolute;
   inset-inline: 0;
@@ -221,32 +335,6 @@
   font-size: 0.7rem;
   letter-spacing: 0.04em;
   color: #d8d0c4;
-}
-.ad-column-card:hover {
-  opacity: 0.88;
-  transform: scale(1.012);
-}
-.ad-column-card--default {
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.28);
-}
-.ad-column-card--dark {
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
-  outline: 1px solid rgba(255, 255, 255, 0.08);
-}
-.ad-column-card--light {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  outline: 1px solid rgba(255, 255, 255, 0.35);
-}
-@media (min-width: 1200px) {
-  .ad-column-slot {
-    max-width: 1550px;
-    aspect-ratio: 1550 / 1550;
-    margin-inline: auto;
-  }
-  .ad-column-card {
-    width: calc(1536 / 1550 * 100%);
-    max-width: 1536px;
-  }
 }
 
 /* ─── Ad panel slide-in ──────────────────────────── */

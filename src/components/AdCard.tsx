@@ -1,65 +1,56 @@
 import { useState, useRef } from 'react';
-import { type Ad, adMediaUrl } from '../lib/ads';
+import { type Ad, adMediaUrl, feedStartsWide } from '../lib/ads';
 import AdPanel from './AdPanel';
 
 interface AdCardProps {
   ad: Ad;
 }
 
-/** 16:9 in-app card — appears below the mission list for free-tier users */
+/** In-feed house unit. 4:5 by default; 16:9 if there is a video or the still is wider than tall. */
 export default function AdCard({ ad }: AdCardProps) {
   const [panelOpen, setPanelOpen] = useState(false);
+  const [wide, setWide] = useState(feedStartsWide(ad));
   const videoRef = useRef<HTMLVideoElement>(null);
+  const still = ad.image ?? ad.imagePortrait ?? ad.imageWide;
 
   return (
     <>
       <button
+        type="button"
         onClick={() => setPanelOpen(true)}
-        className="w-full text-left group relative rounded-sm overflow-hidden border border-[#2e2e2e] hover:border-[#444] transition-colors duration-200 bg-[#1e1e1e]"
-        aria-label={`Sponsored: ${ad.headline}`}
+        className="ad-feed-card group"
+        aria-label={ad.headline || ad.panelTitle || ad.label}
       >
-        {/* 16:9 media */}
-        <div className="relative w-full aspect-video overflow-hidden bg-[#232323]">
+        <div className={`ad-feed-card__frame ${wide ? 'ad-feed-card__frame--wide' : 'ad-feed-card__frame--portrait'}`}>
           {ad.video ? (
             <video
               ref={videoRef}
               src={adMediaUrl(ad.video)}
-              className="w-full h-full object-cover"
+              poster={still ? adMediaUrl(still) : undefined}
+              className="ad-feed-card__media"
               autoPlay
               muted
               loop
               playsInline
             />
-          ) : ad.image ? (
+          ) : still ? (
             <img
-              src={adMediaUrl(ad.image)}
+              src={adMediaUrl(still)}
               alt={ad.headline}
-              className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+              className="ad-feed-card__media"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                setWide(img.naturalWidth > img.naturalHeight);
+              }}
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <span className="font-mono text-xs text-[#444] tracking-widest uppercase">Sponsored</span>
-            </div>
-          )}
-
-          {/* Sponsored badge */}
-          <span className="absolute top-2 left-2 font-mono text-[9px] tracking-[0.25em] uppercase bg-black/70 text-[#888] px-2 py-0.5 rounded-sm">
-            Sponsored
-          </span>
+          ) : null}
         </div>
-
-        {/* Copy row */}
-        <div className="flex items-center justify-between px-4 py-3">
-          <div className="flex-1 min-w-0">
-            <p className="font-mono text-[12px] text-[#f5f0e8] truncate">{ad.headline}</p>
-            <p className="font-mono text-[11px] text-[#777] truncate mt-0.5">{ad.description}</p>
-          </div>
-          <span className="font-mono text-[10px] text-amber-400/80 tracking-widest uppercase ml-4 flex-shrink-0 group-hover:text-amber-400 transition-colors">
-            {ad.ctaText ?? 'See More'} →
-          </span>
+        <div className="ad-feed-card__copy">
+          <p className="ad-feed-card__title">{ad.headline || ad.panelTitle}</p>
+          {ad.description && <p className="ad-feed-card__desc">{ad.description}</p>}
+          <span className="ad-feed-card__cta">{ad.ctaText} →</span>
         </div>
       </button>
-
       {panelOpen && <AdPanel ad={ad} onClose={() => setPanelOpen(false)} />}
     </>
   );
